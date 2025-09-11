@@ -64,10 +64,10 @@ export async function uploadStudents(req, res) {
 
       let user = await User.findOne({ email });
       if (user) {
-        user.name = name; user.role = 'student'; user.passwordHash = passwordHash; user.teacherId = teacherId;
+        user.name = name; user.role = 'student'; user.passwordHash = passwordHash; user.teacherId = teacherId; user.mustChangePassword = true;
         await user.save();
       } else {
-        user = await User.create({ role: 'student', name, email, passwordHash, teacherId });
+        user = await User.create({ role: 'student', name, email, passwordHash, teacherId, mustChangePassword: true });
       }
 
       const existing = await Student.findOne({ email });

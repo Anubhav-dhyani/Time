@@ -1,21 +1,9 @@
-// Student change password
-export async function changePassword(req, res) {
-  const { userId, oldPassword, newPassword } = req.body;
-  const user = await User.findById(userId);
-  if (!user) return res.status(404).json({ message: 'User not found' });
-  const ok = await bcrypt.compare(oldPassword, user.passwordHash);
-  if (!ok) return res.status(400).json({ message: 'Old password incorrect' });
-  user.passwordHash = await bcrypt.hash(newPassword, 10);
-  user.mustChangePassword = false;
-  await user.save();
-  res.json({ message: 'Password changed successfully' });
-}
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { signToken } from '../middleware/auth.js';
 
 export async function login(req, res) {
-  const { email, password, teacherId, identifier } = req.body;
+  const { email, password, teacherId, identifier, expectedRole } = req.body;
   let lookupEmail = email || identifier;
   if (!lookupEmail && teacherId) lookupEmail = teacherId;
 
@@ -37,6 +25,9 @@ export async function login(req, res) {
   if (!user) return res.status(400).json({ message: 'Invalid credentials' });
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(400).json({ message: 'Invalid credentials' });
+  if (expectedRole && expectedRole !== user.role) {
+    return res.status(403).json({ message: 'Please use the correct portal for your role' });
+  }
   const token = signToken(user);
   res.json({
     token,
@@ -71,4 +62,17 @@ export async function ensureAdmin() {
   const passwordHash = await bcrypt.hash(password, 10);
   await User.create({ role: 'admin', name: 'Admin', email, passwordHash });
   console.log('Admin user created from env');
+}
+
+// Student change password
+export async function changePassword(req, res) {
+  const { userId, oldPassword, newPassword } = req.body;
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  const ok = await bcrypt.compare(oldPassword, user.passwordHash);
+  if (!ok) return res.status(400).json({ message: 'Old password incorrect' });
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
+  user.mustChangePassword = false;
+  await user.save();
+  res.json({ message: 'Password changed successfully' });
 }
