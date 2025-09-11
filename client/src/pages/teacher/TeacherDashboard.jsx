@@ -37,6 +37,7 @@ export default function TeacherDashboard() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Teacher Dashboard</h1>
         <div className="flex items-center gap-4">
+          <button onClick={()=>nav('/change-password')} className="text-sm underline">Change password</button>
           <button onClick={()=>nav('/teacher/edit')} className="text-sm underline">Edit timetable</button>
           <button onClick={logout} className="text-sm underline">Logout</button>
         </div>

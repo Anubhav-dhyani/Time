@@ -16,6 +16,48 @@ const DEFAULT_TIMES = [
 ];
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 
+function dayToIndex(day) {
+  const map = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+  return map[day] ?? -1;
+}
+function nowDayIndex() {
+  return new Date().getDay(); // 0-6, 0=SUN
+}
+function nowHM() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+function timeLTE(a, b) { // 'HH:MM' <= 'HH:MM'
+  return a.localeCompare(b) <= 0;
+}
+
+export async function resetPastSlotsForTeacher(teacher) {
+  if (!teacher?.timetable) return;
+  const todayIdx = nowDayIndex();
+  const now = nowHM();
+  let changed = false;
+  // Find slots considered in the past relative to now
+  for (const s of teacher.timetable) {
+    const slotIdx = dayToIndex(s.day);
+    if (slotIdx < 0) continue;
+    const isPastDay = slotIdx >= 0 && slotIdx < todayIdx;
+    const isPastToday = slotIdx === todayIdx && timeLTE(s.end, now);
+    if (isPastDay || isPastToday) {
+      if (s.currentBookings > 0 || (!s.initiallyBusy && s.status === 'occupied')) {
+        // expire bookings linked to this slot
+        await Booking.updateMany({ teacherId: teacher.teacherId, slotId: s._id, status: 'booked' }, { $set: { status: 'expired' } });
+        s.currentBookings = 0;
+        // Reset to available unless teacher marked this slot busy initially
+        s.status = s.initiallyBusy ? 'occupied' : 'available';
+        changed = true;
+      }
+    }
+  }
+  if (changed) await teacher.save();
+}
+
 export async function getMyTimetable(req, res) {
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
@@ -27,6 +69,7 @@ export async function getMyTimetable(req, res) {
     }
     await teacher.save();
   }
+  await resetPastSlotsForTeacher(teacher);
   res.json({ timetable: teacher.timetable, mustSetup: teacher.mustSetupTimetable });
 }
 
@@ -71,6 +114,7 @@ export async function setSlotStatus(req, res) {
 export async function getBookings(req, res) {
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  await resetPastSlotsForTeacher(teacher);
   const bookings = await Booking.find({ teacherId: teacher.teacherId, status: 'booked' });
   const withStudents = await Promise.all(
     bookings.map(async (b) => {
@@ -93,6 +137,7 @@ export async function getSetupTimetable(req, res) {
     }
     await teacher.save();
   }
+  await resetPastSlotsForTeacher(teacher);
   res.json({
     timetable: teacher.timetable.map((s) => ({ ...s.toObject(), initiallyBusy: s.status === 'occupied' })),
     mustSetup: teacher.mustSetupTimetable

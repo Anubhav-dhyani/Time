@@ -66,10 +66,14 @@ export async function ensureAdmin() {
 
 // Student change password
 export async function changePassword(req, res) {
-  const { userId, oldPassword, newPassword } = req.body;
-  const user = await User.findById(userId);
+  const authUserId = req.user?.id;
+  const { userId: bodyUserId, oldPassword, currentPassword, newPassword } = req.body;
+  const targetUserId = authUserId || bodyUserId;
+  if (!targetUserId) return res.status(400).json({ message: 'Missing user' });
+  const user = await User.findById(targetUserId);
   if (!user) return res.status(404).json({ message: 'User not found' });
-  const ok = await bcrypt.compare(oldPassword, user.passwordHash);
+  const old = oldPassword ?? currentPassword;
+  const ok = await bcrypt.compare(old || '', user.passwordHash);
   if (!ok) return res.status(400).json({ message: 'Old password incorrect' });
   user.passwordHash = await bcrypt.hash(newPassword, 10);
   user.mustChangePassword = false;
