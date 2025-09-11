@@ -17,7 +17,11 @@ export default function ChangePassword() {
     if (newPassword.length < 6) return setError('Password must be at least 6 characters');
     if (newPassword !== confirm) return setError('Passwords do not match');
     try {
-      await api.post('/auth/change-password', { currentPassword, newPassword });
+      await api.post('/auth/change-password', {
+        userId: user.id,
+        oldPassword: currentPassword,
+        newPassword
+      });
       setUser({ ...user, mustChangePassword: false });
       setOk(true);
       setTimeout(() => nav(`/${user.role}`), 800);

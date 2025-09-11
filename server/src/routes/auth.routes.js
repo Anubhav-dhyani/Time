@@ -1,7 +1,9 @@
 import { Router } from 'express';
-import { login, registerStudent, ensureAdmin } from '../controllers/auth.controller.js';
+import { login, registerStudent, ensureAdmin, changePassword } from '../controllers/auth.controller.js';
 
 const router = Router();
+
+router.post('/change-password', changePassword);
 
 // Ensure admin user on first call
 router.get('/ensure-admin', async (req, res) => {

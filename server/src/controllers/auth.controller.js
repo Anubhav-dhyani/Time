@@ -1,3 +1,15 @@
+// Student change password
+export async function changePassword(req, res) {
+  const { userId, oldPassword, newPassword } = req.body;
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  const ok = await bcrypt.compare(oldPassword, user.passwordHash);
+  if (!ok) return res.status(400).json({ message: 'Old password incorrect' });
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
+  user.mustChangePassword = false;
+  await user.save();
+  res.json({ message: 'Password changed successfully' });
+}
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { signToken } from '../middleware/auth.js';
@@ -26,7 +38,17 @@ export async function login(req, res) {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(400).json({ message: 'Invalid credentials' });
   const token = signToken(user);
-  res.json({ token, user: { id: user._id, role: user.role, name: user.name, email: user.email, teacherId: user.teacherId } });
+  res.json({
+    token,
+    user: {
+      id: user._id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      teacherId: user.teacherId,
+      mustChangePassword: user.mustChangePassword || false
+    }
+  });
 }
 
 export async function registerStudent(req, res) {
@@ -34,7 +56,7 @@ export async function registerStudent(req, res) {
   const exists = await User.findOne({ email });
   if (exists) return res.status(400).json({ message: 'Email already in use' });
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({ role: 'student', name, email, passwordHash });
+  const user = await User.create({ role: 'student', name, email, passwordHash, mustChangePassword: true });
   const token = signToken(user);
   res.status(201).json({ token, user: { id: user._id, role: user.role, name: user.name, email: user.email, teacherId: user.teacherId } });
 }

@@ -14,7 +14,11 @@ export default function LoginPage() {
     setError('');
     try {
       const user = await login(email, password);
-      nav(`/${user.role}`);
+      if (user.role === 'student' && user.mustChangePassword) {
+        nav('/change-password');
+      } else {
+        nav(`/${user.role}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }
