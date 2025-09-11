@@ -22,12 +22,12 @@ export async function getMyTimetable(req, res) {
   if (!teacher.timetable || teacher.timetable.length === 0) {
     for (const day of DAYS) {
       for (const [start, end] of DEFAULT_TIMES) {
-        teacher.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
+    teacher.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
       }
     }
     await teacher.save();
   }
-  res.json({ timetable: teacher.timetable });
+  res.json({ timetable: teacher.timetable, mustSetup: teacher.mustSetupTimetable });
 }
 
 export async function upsertSlots(req, res) {
@@ -56,8 +56,14 @@ export async function setSlotStatus(req, res) {
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
   const slot = teacher.timetable.id(slotId);
   if (!slot) return res.status(404).json({ message: 'Slot not found' });
-  if (status) slot.status = status;
-  if (typeof maxBookings === 'number') slot.maxBookings = maxBookings;
+  if (status) {
+    return res.status(403).json({ message: 'Busy/free status cannot be changed here' });
+  }
+  if (typeof maxBookings === 'number') {
+    if (slot.initiallyBusy) return res.status(400).json({ message: 'Cannot set limit on an initially busy slot' });
+    if (maxBookings < 1) return res.status(400).json({ message: 'maxBookings must be >= 1' });
+    slot.maxBookings = maxBookings;
+  }
   await teacher.save();
   res.json({ slot });
 }
@@ -73,4 +79,40 @@ export async function getBookings(req, res) {
     })
   );
   res.json({ bookings: withStudents });
+}
+
+// First-login setup: return default grid and current busy flags
+export async function getSetupTimetable(req, res) {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  if (!teacher.timetable || teacher.timetable.length === 0) {
+    for (const day of DAYS) {
+      for (const [start, end] of DEFAULT_TIMES) {
+        teacher.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
+      }
+    }
+    await teacher.save();
+  }
+  res.json({
+    timetable: teacher.timetable.map((s) => ({ ...s.toObject(), initiallyBusy: s.status === 'occupied' })),
+    mustSetup: teacher.mustSetupTimetable
+  });
+}
+
+// Save initial busy selections only; limits cannot be set here
+export async function saveSetupTimetable(req, res) {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const { busyKeys } = req.body; // array of `${day}|${start}|${end}` to mark occupied
+  const toKey = (s) => `${s.day}|${s.start}|${s.end}`;
+  const setBusy = new Set(busyKeys || []);
+  teacher.timetable.forEach((s) => {
+    const busy = setBusy.has(toKey(s));
+    s.status = busy ? 'occupied' : 'available';
+    // mark initiallyBusy for reference
+    s.initiallyBusy = busy;
+  });
+  teacher.mustSetupTimetable = false;
+  await teacher.save();
+  res.json({ ok: true, timetable: teacher.timetable });
 }

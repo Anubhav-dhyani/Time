@@ -8,6 +8,7 @@ const slotSchema = new mongoose.Schema(
     status: { type: String, enum: ['available', 'occupied'], default: 'available' },
     maxBookings: { type: Number, default: 1 },
     currentBookings: { type: Number, default: 0 },
+  initiallyBusy: { type: Boolean, default: false },
   },
   { _id: true }
 );
@@ -18,6 +19,7 @@ const teacherSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     timetable: [slotSchema],
+  mustSetupTimetable: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

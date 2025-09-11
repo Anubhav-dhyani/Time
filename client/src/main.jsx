@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import TeacherDashboard from './pages/teacher/TeacherDashboard.jsx';
+import TeacherSetup from './pages/teacher/TeacherSetup.jsx';
+import TeacherEdit from './pages/teacher/TeacherEdit.jsx';
 import StudentDashboard from './pages/student/StudentDashboard.jsx';
 import { AuthProvider, useAuth } from './state/AuthContext.jsx';
 
@@ -23,7 +25,9 @@ function App() {
   <Route path="/login" element={<LoginPage />} />
   <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin" element={<Protected role="admin"><AdminDashboard /></Protected>} />
-        <Route path="/teacher" element={<Protected role="teacher"><TeacherDashboard /></Protected>} />
+  <Route path="/teacher" element={<Protected role="teacher"><TeacherDashboard /></Protected>} />
+  <Route path="/teacher/setup" element={<Protected role="teacher"><TeacherSetup /></Protected>} />
+  <Route path="/teacher/edit" element={<Protected role="teacher"><TeacherEdit /></Protected>} />
         <Route path="/student" element={<Protected role="student"><StudentDashboard /></Protected>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
