@@ -53,6 +53,15 @@ export default function TeacherDashboard() {
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-3">
               <button 
+                onClick={() => nav('/teacher/setup')} 
+                className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Setup Timetable
+              </button>
+              <button 
                 onClick={() => nav('/change-password')} 
                 className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
               >
@@ -88,6 +97,15 @@ export default function TeacherDashboard() {
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-blue-100 px-4 py-3">
+            <button 
+              onClick={() => { nav('/teacher/setup'); setIsMenuOpen(false); }} 
+              className="w-full text-left py-2 text-blue-600 flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Setup Timetable
+            </button>
             <button 
               onClick={() => { nav('/change-password'); setIsMenuOpen(false); }} 
               className="w-full text-left py-2 text-blue-600 flex items-center"

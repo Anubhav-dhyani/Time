@@ -9,22 +9,31 @@ export default function TeacherSetup() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(''); // Default to empty string for "All Days"
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get('/teacher/timetable/setup');
-        setSlots(data.timetable);
+        setSlots(data.timetable || []); // Fallback to empty array if no data
       } catch (e) {
+        console.error('Load error:', e); // For debugging
         setError(e.response?.data?.message || 'Failed to load timetable');
-      } finally { setLoading(false); }
+      } finally { 
+        setLoading(false); 
+      }
     })();
   }, []);
 
   const key = (s) => `${s.day}|${s.start}|${s.end}`;
   const toggleBusy = (s) => {
-    setSlots((prev) => prev.map((x) => x._id === s._id ? { ...x, status: x.status === 'occupied' ? 'available' : 'occupied' } : x));
+    setSlots((prev) => 
+      prev.map((x) => 
+        x._id === s._id 
+          ? { ...x, status: x.status === 'occupied' ? 'available' : 'occupied' } 
+          : x
+      )
+    );
   };
 
   const save = async () => {
@@ -35,8 +44,11 @@ export default function TeacherSetup() {
       await api.post('/teacher/timetable/setup', { busyKeys });
       navigate('/teacher');
     } catch (e) {
+      console.error('Save error:', e); // For debugging
       setError(e.response?.data?.message || 'Failed to save timetable');
-    } finally { setSaving(false); }
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   // For mobile view, show only one day at a time
@@ -56,8 +68,18 @@ export default function TeacherSetup() {
     );
   }
 
-  const DAYS = ['MON','TUE','WED','THU','FRI'];
-  const times = Array.from(new Set(slots.map((s)=>`${s.start}-${s.end}`))).sort();
+  // FIXED: Sort times chronologically by parsing start time to minutes past midnight
+  const timeToMinutes = (timeStr) => {
+    const [start] = timeStr.split('-'); // Just use start time for sorting
+    const [hours, minutes] = start.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+  const times = Array.from(new Set(slots.map((s) => `${s.start}-${s.end}`)))
+    .map(t => ({ t, minutes: timeToMinutes(t) }))
+    .sort((a, b) => a.minutes - b.minutes)
+    .map(item => item.t);
+
+  const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
@@ -103,7 +125,7 @@ export default function TeacherSetup() {
             <select
               id="day-select"
               className="w-full p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={selectedDay || ''}
+              value={selectedDay}
               onChange={(e) => setSelectedDay(e.target.value)}
             >
               <option value="">All Days</option>
@@ -128,14 +150,21 @@ export default function TeacherSetup() {
                 </div>
                 {DAYS.map((d) => {
                   const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
-                  if (!s) return <div key={d} className="border-b border-blue-100 p-2 bg-blue-50"/>;
+                  if (!s) {
+                    // FIXED: Better placeholder for missing slots (e.g., no data for this day/time)
+                    return (
+                      <div key={d} className="border-b border-blue-100 p-3 bg-gray-50 text-xs text-gray-500 text-center">
+                        No slot
+                      </div>
+                    );
+                  }
                   
                   const busy = s.status === 'occupied';
                   const bg = busy ? 'bg-red-100 border-red-200' : 'bg-green-100 border-green-200';
                   const textColor = busy ? 'text-red-800' : 'text-green-800';
                   
                   return (
-                    <div key={d} className={`border-b border-blue-100 p-3 ${bg} text-sm space-y-2 transition-all duration-200 hover:shadow-md`}>
+                    <div key={d} className={`border-b border-blue-100 p-3 ${bg} text-sm space-y-2 transition-all duration-200 hover:shadow-md cursor-pointer`} onClick={() => toggleBusy(s)}>
                       <div className="flex justify-between items-center">
                         <span className={`text-xs font-medium ${textColor}`}>
                           {busy ? 'Busy' : 'Available'}
@@ -143,7 +172,7 @@ export default function TeacherSetup() {
                       </div>
                       <button 
                         className={`w-full px-3 py-2 text-xs rounded-lg transition-colors duration-200 font-medium ${busy ? 'bg-white text-red-700 hover:bg-red-200' : 'bg-white text-green-700 hover:bg-green-200'}`}
-                        onClick={() => toggleBusy(s)}
+                        onClick={(e) => { e.stopPropagation(); toggleBusy(s); }} // Prevent double-toggle on cell click
                       >
                         {busy ? 'Mark as Available' : 'Mark as Busy'}
                       </button>
@@ -153,6 +182,10 @@ export default function TeacherSetup() {
               </React.Fragment>
             ))}
           </div>
+          {times.length === 0 && (
+            // FIXED: Show message if no slots loaded
+            <div className="text-center py-8 text-gray-500">No time slots available. Check your data.</div>
+          )}
         </div>
 
         {/* Mobile List View */}
@@ -164,7 +197,7 @@ export default function TeacherSetup() {
                 <div className="space-y-3">
                   {slots
                     .filter(s => s.day === d)
-                    .sort((a, b) => a.start.localeCompare(b.start))
+                    .sort((a, b) => timeToMinutes(`${a.start}-${a.end}`) - timeToMinutes(`${b.start}-${b.end}`)) // FIXED: Sort by time
                     .map((s) => {
                       const busy = s.status === 'occupied';
                       const bg = busy ? 'bg-red-100 border-red-200' : 'bg-green-100 border-green-200';
@@ -188,6 +221,10 @@ export default function TeacherSetup() {
                       );
                     })}
                 </div>
+                {slots.filter(s => s.day === d).length === 0 && (
+                  // FIXED: Show message if no slots for day
+                  <div className="text-center py-4 text-gray-500 text-sm">No slots for {d}</div>
+                )}
               </div>
             ))}
           </div>
@@ -196,9 +233,9 @@ export default function TeacherSetup() {
         {/* Action Buttons */}
         <div className="flex gap-3 justify-center">
           <button 
-            disabled={saving} 
+            disabled={saving || slots.length === 0} // FIXED: Disable if no slots
             onClick={save} 
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 transition-colors duration-300 flex items-center disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 transition-colors duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <>

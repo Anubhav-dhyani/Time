@@ -30,7 +30,7 @@ export default function TeacherEdit() {
     await load();
   };
 
-  const DAYS = ['MON','TUE','WED','THU','FRI'];
+  const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const times = Array.from(new Set(slots.map((s)=>`${s.start}-${s.end}`))).sort();
   
   // For mobile view, show only one day at a time

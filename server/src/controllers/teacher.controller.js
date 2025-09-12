@@ -14,7 +14,7 @@ const DEFAULT_TIMES = [
   ['16:00', '16:55'],
   ['16:55', '17:50'],
 ];
-const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 function dayToIndex(day) {
   const map = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };

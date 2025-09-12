@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 
-const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']; // Saturday now included
 
 function groupByDay(slots) {
   const byDay = Object.fromEntries(DAYS.map((d) => [d, []]));
   for (const s of slots) {
-    if (!byDay[s.day]) byDay[s.day] = [];
+    // Ensure only valid days are used
+    if (!DAYS.includes(s.day)) continue;
     byDay[s.day].push(s);
   }
   for (const d of DAYS) {
@@ -14,7 +15,7 @@ function groupByDay(slots) {
   return byDay;
 }
 
-export default function Timetable({ slots = [], onToggle, onSetLimit, onBook, canBook = false }) {
+export default function Timetable({ slots = [], onSetLimit, onBook, canBook = false }) {
   const grouped = useMemo(() => groupByDay(slots), [slots]);
   const [selectedDay, setSelectedDay] = useState(null);
   
@@ -82,14 +83,6 @@ export default function Timetable({ slots = [], onToggle, onSetLimit, onBook, ca
                       </span>
                     </div>
                     <div className="flex gap-2 flex-wrap justify-center">
-                      {onToggle && (
-                        <button 
-                          className="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg transition-colors duration-200 hover:bg-blue-700"
-                          onClick={() => onToggle(s)}
-                        >
-                          Toggle
-                        </button>
-                      )}
                       {onSetLimit && (
                         <button 
                           className="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg transition-colors duration-200 hover:bg-blue-700"
@@ -147,14 +140,6 @@ export default function Timetable({ slots = [], onToggle, onSetLimit, onBook, ca
                           Bookings: {s.currentBookings}/{s.maxBookings}
                         </span>
                         <div className="flex gap-2">
-                          {onToggle && (
-                            <button 
-                              className="px-2 py-1 text-xs bg-blue-600 text-white rounded transition-colors duration-200 hover:bg-blue-700"
-                              onClick={() => onToggle(s)}
-                            >
-                              Toggle
-                            </button>
-                          )}
                           {onSetLimit && (
                             <button 
                               className="px-2 py-1 text-xs bg-blue-600 text-white rounded transition-colors duration-200 hover:bg-blue-700"
