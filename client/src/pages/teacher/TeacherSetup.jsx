@@ -9,49 +9,48 @@ export default function TeacherSetup() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [selectedDay, setSelectedDay] = useState(''); // Default to empty string for "All Days"
+  const [selectedDay, setSelectedDay] = useState('');
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get('/teacher/timetable/setup');
-        setSlots(data.timetable || []); // Fallback to empty array if no data
+        setSlots(data.timetable || []);
       } catch (e) {
-        console.error('Load error:', e); // For debugging
+        console.error('Load error:', e);
         setError(e.response?.data?.message || 'Failed to load timetable');
-      } finally { 
-        setLoading(false); 
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
   const key = (s) => `${s.day}|${s.start}|${s.end}`;
   const toggleBusy = (s) => {
-    setSlots((prev) => 
-      prev.map((x) => 
-        x._id === s._id 
-          ? { ...x, status: x.status === 'occupied' ? 'available' : 'occupied' } 
+    setSlots((prev) =>
+      prev.map((x) =>
+        x._id === s._id
+          ? { ...x, status: x.status === 'occupied' ? 'available' : 'occupied' }
           : x
       )
     );
   };
 
   const save = async () => {
-    setSaving(true); 
+    setSaving(true);
     setError('');
     try {
       const busyKeys = slots.filter((s) => s.status === 'occupied').map(key);
       await api.post('/teacher/timetable/setup', { busyKeys });
       navigate('/teacher');
     } catch (e) {
-      console.error('Save error:', e); // For debugging
+      console.error('Save error:', e);
       setError(e.response?.data?.message || 'Failed to save timetable');
-    } finally { 
-      setSaving(false); 
+    } finally {
+      setSaving(false);
     }
   };
 
-  // For mobile view, show only one day at a time
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   if (loading) {
@@ -68,9 +67,8 @@ export default function TeacherSetup() {
     );
   }
 
-  // FIXED: Sort times chronologically by parsing start time to minutes past midnight
   const timeToMinutes = (timeStr) => {
-    const [start] = timeStr.split('-'); // Just use start time for sorting
+    const [start] = timeStr.split('-');
     const [hours, minutes] = start.split(':').map(Number);
     return hours * 60 + minutes;
   };
@@ -83,16 +81,13 @@ export default function TeacherSetup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-blue-100">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <h1 className="text-xl md:text-2xl font-bold text-blue-800">Set Your Availability</h1>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-6xl mx-auto p-4 md:p-6">
-        {/* Info Card */}
         <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-blue-100">
           <div className="flex items-start">
             <div className="bg-blue-100 p-2 rounded-lg mr-4">
@@ -116,7 +111,6 @@ export default function TeacherSetup() {
           </div>
         )}
 
-        {/* Mobile Day Selector */}
         {isMobile && (
           <div className="mb-4 md:hidden">
             <label htmlFor="day-select" className="block text-sm font-medium text-blue-800 mb-2">
@@ -136,7 +130,6 @@ export default function TeacherSetup() {
           </div>
         )}
 
-        {/* Desktop Grid View */}
         <div className={`bg-white rounded-xl shadow-md p-4 md:p-6 border border-blue-100 mb-6 ${isMobile ? 'hidden md:block' : 'block'}`}>
           <div className="grid" style={{ gridTemplateColumns: `120px repeat(${DAYS.length}, 1fr)` }}>
             <div className="font-medium p-2 border-b-2 border-blue-200 text-blue-800" />
@@ -151,28 +144,27 @@ export default function TeacherSetup() {
                 {DAYS.map((d) => {
                   const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
                   if (!s) {
-                    // FIXED: Better placeholder for missing slots (e.g., no data for this day/time)
                     return (
                       <div key={d} className="border-b border-blue-100 p-3 bg-gray-50 text-xs text-gray-500 text-center">
                         No slot
                       </div>
                     );
                   }
-                  
+
                   const busy = s.status === 'occupied';
-                  const bg = busy ? 'bg-red-100 border-red-200' : 'bg-green-100 border-green-200';
-                  const textColor = busy ? 'text-red-800' : 'text-green-800';
-                  
+                  const bg = busy ? 'bg-red-600 border-red-700' : 'bg-green-100 border-green-200';
+                  const textColor = busy ? 'text-white' : 'text-green-800';
+
                   return (
                     <div key={d} className={`border-b border-blue-100 p-3 ${bg} text-sm space-y-2 transition-all duration-200 hover:shadow-md cursor-pointer`} onClick={() => toggleBusy(s)}>
                       <div className="flex justify-between items-center">
                         <span className={`text-xs font-medium ${textColor}`}>
-                          {busy ? 'Busy' : 'Available'}
+                          {busy ? 'Busy (Setup)' : 'Available'}
                         </span>
                       </div>
-                      <button 
-                        className={`w-full px-3 py-2 text-xs rounded-lg transition-colors duration-200 font-medium ${busy ? 'bg-white text-red-700 hover:bg-red-200' : 'bg-white text-green-700 hover:bg-green-200'}`}
-                        onClick={(e) => { e.stopPropagation(); toggleBusy(s); }} // Prevent double-toggle on cell click
+                      <button
+                        className={`w-full px-3 py-2 text-xs bg-white rounded-lg transition-colors duration-200 font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-green-700 hover:bg-green-100'}`}
+                        onClick={(e) => { e.stopPropagation(); toggleBusy(s); }}
                       >
                         {busy ? 'Mark as Available' : 'Mark as Busy'}
                       </button>
@@ -183,12 +175,10 @@ export default function TeacherSetup() {
             ))}
           </div>
           {times.length === 0 && (
-            // FIXED: Show message if no slots loaded
             <div className="text-center py-8 text-gray-500">No time slots available. Check your data.</div>
           )}
         </div>
 
-        {/* Mobile List View */}
         {isMobile && (
           <div className="md:hidden space-y-4 mb-6">
             {(selectedDay ? [selectedDay] : DAYS).map((d) => (
@@ -197,22 +187,22 @@ export default function TeacherSetup() {
                 <div className="space-y-3">
                   {slots
                     .filter(s => s.day === d)
-                    .sort((a, b) => timeToMinutes(`${a.start}-${a.end}`) - timeToMinutes(`${b.start}-${b.end}`)) // FIXED: Sort by time
+                    .sort((a, b) => timeToMinutes(`${a.start}-${a.end}`) - timeToMinutes(`${b.start}-${b.end}`))
                     .map((s) => {
                       const busy = s.status === 'occupied';
-                      const bg = busy ? 'bg-red-100 border-red-200' : 'bg-green-100 border-green-200';
-                      const textColor = busy ? 'text-red-800' : 'text-green-800';
-                      
+                      const bg = busy ? 'bg-red-600 border-red-700' : 'bg-green-100 border-green-200';
+                      const textColor = busy ? 'text-white' : 'text-green-800';
+
                       return (
                         <div key={s._id} className={`p-4 rounded-lg border ${bg} space-y-3`}>
                           <div className="flex justify-between items-center">
                             <span className="font-medium">{s.start} - {s.end}</span>
                             <span className={`text-xs font-medium ${textColor}`}>
-                              {busy ? 'Busy' : 'Available'}
+                              {busy ? 'Busy (Setup)' : 'Available'}
                             </span>
                           </div>
-                          <button 
-                            className={`w-full px-3 py-2 text-xs rounded-lg transition-colors duration-200 font-medium ${busy ? 'bg-white text-red-700 hover:bg-red-200' : 'bg-white text-green-700 hover:bg-green-200'}`}
+                          <button
+                            className={`w-full px-3 py-2 text-xs bg-white rounded-lg transition-colors duration-200 font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-green-700 hover:bg-green-100'}`}
                             onClick={() => toggleBusy(s)}
                           >
                             {busy ? 'Mark as Available' : 'Mark as Busy'}
@@ -222,7 +212,6 @@ export default function TeacherSetup() {
                     })}
                 </div>
                 {slots.filter(s => s.day === d).length === 0 && (
-                  // FIXED: Show message if no slots for day
                   <div className="text-center py-4 text-gray-500 text-sm">No slots for {d}</div>
                 )}
               </div>
@@ -230,11 +219,10 @@ export default function TeacherSetup() {
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="flex gap-3 justify-center">
-          <button 
-            disabled={saving || slots.length === 0} // FIXED: Disable if no slots
-            onClick={save} 
+          <button
+            disabled={saving || slots.length === 0}
+            onClick={save}
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 transition-colors duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
@@ -257,7 +245,6 @@ export default function TeacherSetup() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-blue-100 bg-white">
         <p>Teacher Portal • {new Date().getFullYear()}</p>
       </footer>

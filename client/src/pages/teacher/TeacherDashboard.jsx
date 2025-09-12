@@ -23,7 +23,7 @@ export default function TeacherDashboard() {
       console.error('Error loading teacher data:', error);
     }
   };
-  
+
   useEffect(() => { load(); }, []);
   useEffect(() => { if (mustSetup) nav('/teacher/setup'); }, [mustSetup]);
 
@@ -35,11 +35,10 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-blue-100">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            <button 
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden mr-3 text-blue-700 focus:outline-none"
             >
@@ -49,11 +48,11 @@ export default function TeacherDashboard() {
             </button>
             <h1 className="text-xl md:text-2xl font-bold text-blue-800">Teacher Dashboard</h1>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-3">
-              <button 
-                onClick={() => nav('/teacher/setup')} 
+              <button
+                onClick={() => nav('/teacher/setup')}
                 className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -61,8 +60,8 @@ export default function TeacherDashboard() {
                 </svg>
                 Setup Timetable
               </button>
-              <button 
-                onClick={() => nav('/change-password')} 
+              <button
+                onClick={() => nav('/change-password')}
                 className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -70,8 +69,8 @@ export default function TeacherDashboard() {
                 </svg>
                 Password
               </button>
-              <button 
-                onClick={() => nav('/teacher/edit')} 
+              <button
+                onClick={() => nav('/teacher/edit')}
                 className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -81,8 +80,8 @@ export default function TeacherDashboard() {
               </button>
             </div>
             <div className="relative">
-              <button 
-                onClick={logout} 
+              <button
+                onClick={logout}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -93,12 +92,11 @@ export default function TeacherDashboard() {
             </div>
           </div>
         </div>
-        
-        {/* Mobile menu */}
+
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-blue-100 px-4 py-3">
-            <button 
-              onClick={() => { nav('/teacher/setup'); setIsMenuOpen(false); }} 
+            <button
+              onClick={() => { nav('/teacher/setup'); setIsMenuOpen(false); }}
               className="w-full text-left py-2 text-blue-600 flex items-center"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -106,8 +104,8 @@ export default function TeacherDashboard() {
               </svg>
               Setup Timetable
             </button>
-            <button 
-              onClick={() => { nav('/change-password'); setIsMenuOpen(false); }} 
+            <button
+              onClick={() => { nav('/change-password'); setIsMenuOpen(false); }}
               className="w-full text-left py-2 text-blue-600 flex items-center"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -115,8 +113,8 @@ export default function TeacherDashboard() {
               </svg>
               Change Password
             </button>
-            <button 
-              onClick={() => { nav('/teacher/edit'); setIsMenuOpen(false); }} 
+            <button
+              onClick={() => { nav('/teacher/edit'); setIsMenuOpen(false); }}
               className="w-full text-left py-2 text-blue-600 flex items-center"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -128,9 +126,7 @@ export default function TeacherDashboard() {
         )}
       </header>
 
-      {/* Main Content */}
       <main className="max-w-6xl mx-auto p-4 md:p-6">
-        {/* Welcome Card */}
         <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-blue-100 transition-all duration-300 hover:shadow-lg">
           <div className="flex items-center">
             <div className="bg-blue-100 p-3 rounded-lg mr-4">
@@ -145,28 +141,26 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
         <div className="flex border-b border-blue-200 mb-6">
           <button
-            className={`py-2 px-4 font-medium text-sm ${activeTab === 'timetable' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
+            className={`py-2 px-4 font-medium text-sm ${activeTab === 'timetable' ? 'text-white bg-blue-900 border-b-2 border-blue-900' : 'text-white bg-gray-800 hover:bg-blue-900'}`}
             onClick={() => setActiveTab('timetable')}
           >
             Timetable
           </button>
           <button
-            className={`py-2 px-4 font-medium text-sm ${activeTab === 'bookings' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
+            className={`py-2 px-4 font-medium text-sm ${activeTab === 'bookings' ? 'text-white bg-blue-900 border-b-2 border-blue-900' : 'text-white bg-gray-800 hover:bg-blue-900'}`}
             onClick={() => setActiveTab('bookings')}
           >
             Bookings ({bookings.length})
           </button>
         </div>
 
-        {/* Timetable Section */}
         {activeTab === 'timetable' && (
           <div className="bg-white rounded-xl shadow-md p-5 border border-blue-100 mb-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-lg font-semibold text-blue-800">Your Timetable</h2>
-              <button 
+              <button
                 onClick={load}
                 className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
               >
@@ -176,19 +170,18 @@ export default function TeacherDashboard() {
                 Refresh
               </button>
             </div>
-            
+
             <div className="overflow-x-auto">
               <Timetable slots={timetable} onToggle={onToggle} canBook={false} />
             </div>
           </div>
         )}
 
-        {/* Bookings Section */}
         {activeTab === 'bookings' && (
           <div className="bg-white rounded-xl shadow-md p-5 border border-blue-100">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-lg font-semibold text-blue-800">Student Bookings</h2>
-              <button 
+              <button
                 onClick={load}
                 className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
               >
@@ -198,7 +191,7 @@ export default function TeacherDashboard() {
                 Refresh
               </button>
             </div>
-            
+
             <div className="overflow-auto rounded-lg border border-blue-100">
               {bookings.length > 0 ? (
                 <table className="min-w-full divide-y divide-blue-100">
@@ -243,7 +236,6 @@ export default function TeacherDashboard() {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-blue-100 bg-white">
         <p>Teacher Portal • {new Date().getFullYear()}</p>
       </footer>

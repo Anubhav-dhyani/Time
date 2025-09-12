@@ -21,12 +21,11 @@ export default function StudentDashboard() {
       setTeacherId(data.teacherId || '');
       setTeacherName(data.teacherName || 'Not assigned');
       setTimetable(data.timetable || []);
-      
-      // Check if student has booked a slot for today
+
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Start of today
-      const booked = data.timetable.some(slot => 
-        slot.bookedBy === user?.id && 
+      today.setHours(0, 0, 0, 0);
+      const booked = data.timetable.some(slot =>
+        slot.bookedBy === user?.id &&
         new Date(slot.startTime).toDateString() === today.toDateString()
       );
       setHasBookedSlot(booked);
@@ -37,9 +36,9 @@ export default function StudentDashboard() {
       setHasBookedSlot(false);
     }
   };
-  
-  useEffect(() => { 
-    load(); 
+
+  useEffect(() => {
+    load();
   }, []);
 
   const isPastSlot = (slot) => {
@@ -50,24 +49,21 @@ export default function StudentDashboard() {
 
   const onBook = (slot) => {
     if (isBooking) {
-      return; // Prevent starting a new booking while one is in progress
+      return;
     }
 
-    // Check if slot is in the past
     if (isPastSlot(slot)) {
       setErrorMessage('Cannot book a past time slot.');
       setShowError(true);
       return;
     }
-    
-    // Check if student has already booked a slot for today
+
     if (hasBookedSlot) {
-      setErrorMessage('You can\'t access to book slot again.');
+      setErrorMessage("You can't access to book slot again.");
       setShowError(true);
       return;
     }
-    
-    // Show confirmation popup
+
     setSelectedSlot(slot);
     setShowConfirm(true);
   };
@@ -77,7 +73,7 @@ export default function StudentDashboard() {
     setIsBooking(true);
     try {
       await api.post('/student/book', { slotId: selectedSlot._id });
-      await load(); // Reload to reflect updated booking status
+      await load();
       setSelectedSlot(null);
     } catch (error) {
       console.error('Error booking slot:', error);
@@ -101,11 +97,10 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-blue-100">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            <button 
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden mr-3 text-blue-700 focus:outline-none"
             >
@@ -115,7 +110,7 @@ export default function StudentDashboard() {
             </button>
             <h1 className="text-xl md:text-2xl font-bold text-blue-800">Student Dashboard</h1>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <div className="hidden md:block text-right">
               <p className="text-sm font-medium text-blue-800">Student: {user?.name || 'Student'}</p>
@@ -125,8 +120,8 @@ export default function StudentDashboard() {
               )}
             </div>
             <div className="relative">
-              <button 
-                onClick={logout} 
+              <button
+                onClick={logout}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -137,8 +132,7 @@ export default function StudentDashboard() {
             </div>
           </div>
         </div>
-        
-        {/* Mobile menu */}
+
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-blue-100 px-4 py-3">
             <p className="text-blue-700">Student: {user?.name || 'Student'}</p>
@@ -150,9 +144,7 @@ export default function StudentDashboard() {
         )}
       </header>
 
-      {/* Main Content */}
       <main className="max-w-6xl mx-auto p-4 md:p-6">
-        {/* Welcome Card */}
         <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-blue-100 transition-all duration-300 hover:shadow-lg">
           <div className="flex items-center">
             <div className="bg-blue-100 p-3 rounded-lg mr-4">
@@ -170,11 +162,10 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Timetable Section */}
         <div className="bg-white rounded-xl shadow-md p-5 border border-blue-100">
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-lg font-semibold text-blue-800">Class Schedule</h2>
-            <button 
+            <button
               onClick={load}
               className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"
             >
@@ -184,18 +175,17 @@ export default function StudentDashboard() {
               Refresh
             </button>
           </div>
-          
+
           <div className="overflow-x-auto">
-            <Timetable 
-              slots={timetable} 
-              onBook={onBook} 
-              canBook={!hasBookedSlot && !isBooking} 
+            <Timetable
+              slots={timetable}
+              onBook={onBook}
+              canBook={!hasBookedSlot && !isBooking}
               isPastSlot={isPastSlot}
             />
           </div>
         </div>
 
-        {/* Info Section */}
         <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-100">
           <div className="flex items-start">
             <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -214,7 +204,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Confirmation Popup */}
         {showConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-sm w-full">
@@ -240,7 +229,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Error Popup */}
         {showError && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-sm w-full">
@@ -259,7 +247,6 @@ export default function StudentDashboard() {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-blue-100 bg-white">
         <p>Student Portal • {new Date().getFullYear()}</p>
       </footer>
