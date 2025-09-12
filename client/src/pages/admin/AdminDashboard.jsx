@@ -6,7 +6,6 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [result, setResult] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState({ refresh: false, teachers: false, students: false });
   const [selectedFiles, setSelectedFiles] = useState({ teachers: null, students: null });
 
@@ -55,88 +54,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex">
-      {/* Sidebar */}
-      <div className={`
-        fixed md:relative w-72 bg-gradient-to-b from-blue-800 to-indigo-900 text-white min-h-screen z-10 transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-indigo-700 flex items-center">
-          <div className="bg-white p-2 rounded-lg mr-3">
-            <svg className="w-7 h-7 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">Admin Portal</h1>
-            <p className="text-blue-200 text-xs mt-1">Management System v2.0</p>
-          </div>
-        </div>
-        
-        <nav className="p-4 mt-2">
-          <ul className="space-y-1">
-            <li>
-              <button 
-                onClick={() => setActiveTab('dashboard')}
-                className={`w-full text-left px-4 py-4 rounded-xl transition-all duration-300 flex items-center ${activeTab === 'dashboard' ? 'bg-white text-indigo-800 shadow-lg' : 'text-blue-200 hover:bg-indigo-700 hover:text-white'}`}
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setActiveTab('users')}
-                className={`w-full text-left px-4 py-4 rounded-xl transition-all duration-300 flex items-center ${activeTab === 'users' ? 'bg-white text-indigo-800 shadow-lg' : 'text-blue-200 hover:bg-indigo-700 hover:text-white'}`}
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                User Management
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setActiveTab('uploads')}
-                className={`w-full text-left px-4 py-4 rounded-xl transition-all duration-300 flex items-center ${activeTab === 'uploads' ? 'bg-white text-indigo-800 shadow-lg' : 'text-blue-200 hover:bg-indigo-700 hover:text-white'}`}
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Data Uploads
-              </button>
-            </li>
-          </ul>
-        </nav>
-        
-        <div className="absolute bottom-0 w-full p-4 border-t border-indigo-700">
-          <button 
-            onClick={logout} 
-            className="w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center text-blue-200 hover:bg-indigo-700 hover:text-white"
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Logout
-          </button>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden text-indigo-600 focus:outline-none mr-4"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
             <h1 className="text-xl font-semibold text-gray-800">Admin Dashboard</h1>
           </div>
           
@@ -150,6 +72,15 @@ export default function AdminDashboard() {
                 AU
               </div>
             </div>
+            <button 
+              onClick={logout} 
+              className="text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors duration-300 px-3 py-2 rounded-lg flex items-center"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Logout
+            </button>
           </div>
         </header>
 
@@ -391,14 +322,6 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
-
-      {/* Overlay for mobile sidebar */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-0 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
     </div>
   );
 }

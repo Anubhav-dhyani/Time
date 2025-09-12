@@ -37,10 +37,7 @@ export default function StudentLogin() {
       {/* Overlay to improve text readability */}
       <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       
-      {/* Logo at the top */}
-      <div className="relative z-10 mb-2 mt-4">
-        <img src={logoImage} alt="GEHU Logo" className="h-16 md:h-20 lg:h-24 drop-shadow-lg" />
-      </div>
+     
 
       {/* University Name */}
       <div className="relative z-10 mb-6 text-center">
