@@ -8,6 +8,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState({ refresh: false, teachers: false, students: false });
+  const [selectedFiles, setSelectedFiles] = useState({ teachers: null, students: null });
 
   const refresh = async () => {
     setLoading(prev => ({ ...prev, refresh: true }));
@@ -25,8 +26,13 @@ export default function AdminDashboard() {
     refresh(); 
   }, []);
 
+  const handleFileSelect = (type, event) => {
+    const file = event.target.files[0];
+    setSelectedFiles(prev => ({ ...prev, [type]: file }));
+  };
+
   const upload = async (path) => {
-    const file = document.getElementById(path).files[0];
+    const file = selectedFiles[path];
     if (!file) return;
     
     setLoading(prev => ({ ...prev, [path]: true }));
@@ -37,6 +43,7 @@ export default function AdminDashboard() {
     try {
       const { data } = await api.post(`/admin/upload/${path}`, form);
       setResult(data);
+      setSelectedFiles(prev => ({ ...prev, [path]: null }));
       await refresh();
     } catch (error) {
       console.error(`Error uploading ${path}:`, error);
@@ -101,17 +108,6 @@ export default function AdminDashboard() {
                 Data Uploads
               </button>
             </li>
-            <li>
-              <button 
-                onClick={() => setActiveTab('analytics')}
-                className={`w-full text-left px-4 py-4 rounded-xl transition-all duration-300 flex items-center ${activeTab === 'analytics' ? 'bg-white text-indigo-800 shadow-lg' : 'text-blue-200 hover:bg-indigo-700 hover:text-white'}`}
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Analytics
-              </button>
-            </li>
           </ul>
         </nav>
         
@@ -145,11 +141,6 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <button className="p-2 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors duration-300">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
             <div className="flex items-center space-x-3">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-medium text-gray-800">Admin User</p>
@@ -165,7 +156,7 @@ export default function AdminDashboard() {
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
               <div className="flex justify-between items-center">
                 <div>
@@ -210,21 +201,6 @@ export default function AdminDashboard() {
               </div>
               <p className="text-xs text-gray-500 mt-3"><span className="text-green-500 font-medium">+15%</span> from last month</p>
             </div>
-            
-            <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-500">Active Sessions</p>
-                  <h3 className="text-2xl font-bold text-gray-800 mt-1">142</h3>
-                </div>
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-3"><span className="text-green-500 font-medium">+23%</span> from last month</p>
-            </div>
           </div>
 
           {/* Upload Cards */}
@@ -239,36 +215,39 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold text-gray-800">Upload Teachers</h2>
               </div>
               <p className="text-gray-600 text-sm mb-4">Upload CSV/XLSX file with teacher information</p>
-              <div className="flex items-center space-x-3">
-                <label htmlFor="teachers" className="flex-1">
+              <div className="space-y-3">
+                <label htmlFor="teachers" className="block">
                   <input 
                     id="teachers" 
                     type="file" 
                     className="hidden" 
                     accept=".csv,.xlsx,.xls"
+                    onChange={(e) => handleFileSelect('teachers', e)}
                   />
                   <div className="cursor-pointer border border-dashed border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between">
-                    <span>Choose file</span>
+                    <span>{selectedFiles.teachers ? selectedFiles.teachers.name : "Choose file"}</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
                 </label>
-                <button 
-                  onClick={() => upload('teachers')} 
-                  disabled={loading.teachers}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-md hover:shadow-lg"
-                >
-                  {loading.teachers ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Uploading...
-                    </>
-                  ) : 'Upload'}
-                </button>
+                {selectedFiles.teachers && (
+                  <button 
+                    onClick={() => upload('teachers')} 
+                    disabled={loading.teachers}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg"
+                  >
+                    {loading.teachers ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : 'Upload Teachers'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -282,36 +261,39 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold text-gray-800">Upload Students</h2>
               </div>
               <p className="text-gray-600 text-sm mb-4">Upload CSV/XLSX file with student information</p>
-              <div className="flex items-center space-x-3">
-                <label htmlFor="students" className="flex-1">
+              <div className="space-y-3">
+                <label htmlFor="students" className="block">
                   <input 
                     id="students" 
                     type="file" 
                     className="hidden" 
                     accept=".csv,.xlsx,.xls"
+                    onChange={(e) => handleFileSelect('students', e)}
                   />
                   <div className="cursor-pointer border border-dashed border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between">
-                    <span>Choose file</span>
+                    <span>{selectedFiles.students ? selectedFiles.students.name : "Choose file"}</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
                 </label>
-                <button 
-                  onClick={() => upload('students')} 
-                  disabled={loading.students}
-                  className="bg-gradient-to-r from-green-600 to-teal-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:from-green-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-md hover:shadow-lg"
-                >
-                  {loading.students ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Uploading...
-                    </>
-                  ) : 'Upload'}
-                </button>
+                {selectedFiles.students && (
+                  <button 
+                    onClick={() => upload('students')} 
+                    disabled={loading.students}
+                    className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:from-green-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg"
+                  >
+                    {loading.students ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : 'Upload Students'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -336,12 +318,6 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-gray-800">All Users</h2>
               <div className="flex space-x-3">
-                <button className="text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors duration-300 px-3 py-2 rounded-lg flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  Filter
-                </button>
                 <button 
                   onClick={refresh} 
                   disabled={loading.refresh}

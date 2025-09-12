@@ -15,14 +15,25 @@ function loadRows(file) {
 
 export async function uploadTeachers(req, res) {
   const rows = loadRows(req.file);
+  const allowedColumns = ['name', 'email', 'password', 'teacherId'];
+  if (rows.length > 0) {
+    const fileColumns = Object.keys(rows[0]).map(c => c.trim().toLowerCase());
+    const normalizedAllowed = allowedColumns.map(c => c.toLowerCase());
+    const extra = fileColumns.filter(c => !normalizedAllowed.includes(c));
+    const missing = normalizedAllowed.filter(c => !fileColumns.includes(c));
+    if (extra.length > 0 || missing.length > 0) {
+      if (req.file?.path) fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: `Invalid columns. Allowed: ${allowedColumns.join(', ')}. Extra: ${extra.join(', ')}. Missing: ${missing.join(', ')}` });
+    }
+  }
   const created = [];
   for (const row of rows) {
     try {
-      const name = row.name || row.Name || row.NAME;
+      const name = row.name;
       if (!name) continue;
-      const teacherId = row.teacherId || row.TeacherId || `T-${nanoid(6)}`;
-      const email = row.email || row.Email || `${teacherId.toLowerCase()}@example.com`;
-      const password = row.password || row.Password || nanoid(10);
+      const teacherId = row.teacherId || `T-${nanoid(6)}`;
+      const email = row.email || `${teacherId.toLowerCase()}@example.com`;
+      const password = row.password || nanoid(10);
       const passwordHash = await bcrypt.hash(password, 10);
 
       let user = await User.findOne({ email });
@@ -34,7 +45,7 @@ export async function uploadTeachers(req, res) {
       }
 
       let teacher = await Teacher.findOne({ email });
-  if (teacher) {
+      if (teacher) {
         teacher.name = name; teacher.teacherId = teacherId;
         await teacher.save();
       } else {
@@ -51,15 +62,26 @@ export async function uploadTeachers(req, res) {
 
 export async function uploadStudents(req, res) {
   const rows = loadRows(req.file);
+  const allowedColumns = ['name', 'email', 'password', 'studentId', 'teacherId'];
+  if (rows.length > 0) {
+    const fileColumns = Object.keys(rows[0]).map(c => c.trim().toLowerCase());
+    const normalizedAllowed = allowedColumns.map(c => c.toLowerCase());
+    const extra = fileColumns.filter(c => !normalizedAllowed.includes(c));
+    const missing = normalizedAllowed.filter(c => !fileColumns.includes(c));
+    if (extra.length > 0 || missing.length > 0) {
+      if (req.file?.path) fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: `Invalid columns. Allowed: ${allowedColumns.join(', ')}. Extra: ${extra.join(', ')}. Missing: ${missing.join(', ')}` });
+    }
+  }
   const created = [];
   for (const row of rows) {
     try {
-      const name = row.name || row.Name;
-      const email = row.email || row.Email;
-      const teacherId = row.teacherId || row.TeacherId || row.Teacher || row.teacher;
+      const name = row.name;
+      const email = row.email;
+      const teacherId = row.teacherId;
       if (!name || !email || !teacherId) continue;
-      const studentId = row.studentId || row.StudentId || `S-${nanoid(6)}`;
-      const password = row.password || row.Password || nanoid(10);
+      const studentId = row.studentId || `S-${nanoid(6)}`;
+      const password = row.password || nanoid(10);
       const passwordHash = await bcrypt.hash(password, 10);
 
       let user = await User.findOne({ email });
