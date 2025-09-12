@@ -5,13 +5,21 @@ import Timetable from '../../shared/Timetable.jsx';
 export default function StudentDashboard() {
   const { api, logout, user } = useAuth();
   const [teacherId, setTeacherId] = useState('');
+  const [teacherName, setTeacherName] = useState('');
   const [timetable, setTimetable] = useState([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const load = async () => {
-    const { data } = await api.get('/student/timetable');
-    setTeacherId(data.teacherId);
-    setTimetable(data.timetable);
+    try {
+      const { data } = await api.get('/student/timetable');
+      setTeacherId(data.teacherId || '');
+      setTeacherName(data.teacherName || 'Not assigned'); // Use teacherName from API response
+      setTimetable(data.timetable || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setTeacherName('Not assigned');
+      setTimetable([]);
+    }
   };
   
   useEffect(() => { 
@@ -19,8 +27,12 @@ export default function StudentDashboard() {
   }, []);
 
   const onBook = async (slot) => {
-    await api.post('/student/book', { slotId: slot._id });
-    await load();
+    try {
+      await api.post('/student/book', { slotId: slot._id });
+      await load();
+    } catch (error) {
+      console.error('Error booking slot:', error);
+    }
   };
 
   return (
@@ -42,7 +54,8 @@ export default function StudentDashboard() {
           
           <div className="flex items-center space-x-4">
             <div className="hidden md:block text-right">
-              <p className="text-sm font-medium text-blue-800">Teacher: {teacherId || 'Not assigned'}</p>
+              <p className="text-sm font-medium text-blue-800">Student: {user?.name || 'Student'}</p>
+              <p className="text-sm font-medium text-blue-800">Teacher: {teacherName}</p>
             </div>
             <div className="relative">
               <button 
@@ -61,7 +74,8 @@ export default function StudentDashboard() {
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-blue-100 px-4 py-3">
-            <p className="text-blue-700">Teacher: {teacherId || 'Not assigned'}</p>
+            <p className="text-blue-700">Student: {user?.name || 'Student'}</p>
+            <p className="text-blue-700">Teacher: {teacherName}</p>
           </div>
         )}
       </header>
@@ -77,7 +91,7 @@ export default function StudentDashboard() {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-blue-800">Welcome, Student!</h2>
+              <h2 className="text-lg font-semibold text-blue-800">Welcome, {user?.name || 'Student'}!</h2>
               <p className="text-gray-600 text-sm">View and book available time slots with your teacher</p>
             </div>
           </div>
