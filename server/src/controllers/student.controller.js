@@ -55,11 +55,28 @@ export async function bookSlot(req, res) {
     if (slot.status !== 'available') return res.status(400).json({ message: 'Slot not available' });
     if (slot.currentBookings >= slot.maxBookings) return res.status(400).json({ message: 'Slot full' });
 
-    // Check if already booked by this student
+    // Check if already booked this specific slot by this student
     const existing = await Booking.findOne({ studentUserId: me._id, teacherId: teacher.teacherId, slotId, status: 'booked' });
     if (existing) return res.status(400).json({ message: 'Already booked' });
 
-    await Booking.create({ studentUserId: me._id, teacherId: teacher.teacherId, slotId, status: 'booked' });
+    // NEW: Check if student has already booked any slot for today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    const dailyBooking = await Booking.findOne({
+      studentUserId: me._id,
+      teacherId: teacher.teacherId,
+      startTime: { $gte: todayStart, $lt: todayEnd },
+      status: 'booked'
+    });
+
+    if (dailyBooking) {
+      return res.status(400).json({ message: "You can't access to book slot again. You already have a booking for today." });
+    }
+
+    await Booking.create({ studentUserId: me._id, teacherId: teacher.teacherId, slotId, status: 'booked', startTime: new Date(slot.start) });
     slot.currentBookings += 1;
     if (slot.currentBookings >= slot.maxBookings) slot.status = 'occupied';
     await teacher.save();
@@ -68,4 +85,4 @@ export async function bookSlot(req, res) {
     console.error('Error in bookSlot:', error);
     res.status(500).json({ error: 'Failed to book slot' });
   }
-}  
+}

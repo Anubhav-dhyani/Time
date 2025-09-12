@@ -8,17 +8,33 @@ export default function StudentDashboard() {
   const [teacherName, setTeacherName] = useState('');
   const [timetable, setTimetable] = useState([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasBookedSlot, setHasBookedSlot] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isBooking, setIsBooking] = useState(false);
 
   const load = async () => {
     try {
       const { data } = await api.get('/student/timetable');
       setTeacherId(data.teacherId || '');
-      setTeacherName(data.teacherName || 'Not assigned'); // Use teacherName from API response
+      setTeacherName(data.teacherName || 'Not assigned');
       setTimetable(data.timetable || []);
+      
+      // Check if student has booked a slot for today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      const booked = data.timetable.some(slot => 
+        slot.bookedBy === user?.id && 
+        new Date(slot.startTime).toDateString() === today.toDateString()
+      );
+      setHasBookedSlot(booked);
     } catch (error) {
       console.error('Error loading data:', error);
       setTeacherName('Not assigned');
       setTimetable([]);
+      setHasBookedSlot(false);
     }
   };
   
@@ -26,13 +42,61 @@ export default function StudentDashboard() {
     load(); 
   }, []);
 
-  const onBook = async (slot) => {
+  const isPastSlot = (slot) => {
+    const now = new Date();
+    const slotTime = new Date(slot.startTime);
+    return slotTime < now;
+  };
+
+  const onBook = (slot) => {
+    if (isBooking) {
+      return; // Prevent starting a new booking while one is in progress
+    }
+
+    // Check if slot is in the past
+    if (isPastSlot(slot)) {
+      setErrorMessage('Cannot book a past time slot.');
+      setShowError(true);
+      return;
+    }
+    
+    // Check if student has already booked a slot for today
+    if (hasBookedSlot) {
+      setErrorMessage('You can\'t access to book slot again.');
+      setShowError(true);
+      return;
+    }
+    
+    // Show confirmation popup
+    setSelectedSlot(slot);
+    setShowConfirm(true);
+  };
+
+  const confirmBooking = async () => {
+    setShowConfirm(false);
+    setIsBooking(true);
     try {
-      await api.post('/student/book', { slotId: slot._id });
-      await load();
+      await api.post('/student/book', { slotId: selectedSlot._id });
+      await load(); // Reload to reflect updated booking status
+      setSelectedSlot(null);
     } catch (error) {
       console.error('Error booking slot:', error);
+      setErrorMessage(error.response?.data?.message || 'Error booking slot. Please try again.');
+      setShowError(true);
+      setSelectedSlot(null);
+    } finally {
+      setIsBooking(false);
     }
+  };
+
+  const cancelBooking = () => {
+    setShowConfirm(false);
+    setSelectedSlot(null);
+  };
+
+  const closeError = () => {
+    setShowError(false);
+    setErrorMessage('');
   };
 
   return (
@@ -56,6 +120,9 @@ export default function StudentDashboard() {
             <div className="hidden md:block text-right">
               <p className="text-sm font-medium text-blue-800">Student: {user?.name || 'Student'}</p>
               <p className="text-sm font-medium text-blue-800">Teacher: {teacherName}</p>
+              {hasBookedSlot && (
+                <p className="text-sm font-medium text-green-600">You have booked a slot for today</p>
+              )}
             </div>
             <div className="relative">
               <button 
@@ -76,6 +143,9 @@ export default function StudentDashboard() {
           <div className="md:hidden bg-white border-t border-blue-100 px-4 py-3">
             <p className="text-blue-700">Student: {user?.name || 'Student'}</p>
             <p className="text-blue-700">Teacher: {teacherName}</p>
+            {hasBookedSlot && (
+              <p className="text-green-600">You have booked a slot for today</p>
+            )}
           </div>
         )}
       </header>
@@ -93,6 +163,9 @@ export default function StudentDashboard() {
             <div>
               <h2 className="text-lg font-semibold text-blue-800">Welcome, {user?.name || 'Student'}!</h2>
               <p className="text-gray-600 text-sm">View and book available time slots with your teacher</p>
+              {hasBookedSlot && (
+                <p className="text-green-600 text-sm mt-1">You have already booked a slot for today. You cannot book another one.</p>
+              )}
             </div>
           </div>
         </div>
@@ -113,7 +186,12 @@ export default function StudentDashboard() {
           </div>
           
           <div className="overflow-x-auto">
-            <Timetable slots={timetable} onBook={onBook} canBook />
+            <Timetable 
+              slots={timetable} 
+              onBook={onBook} 
+              canBook={!hasBookedSlot && !isBooking} 
+              isPastSlot={isPastSlot}
+            />
           </div>
         </div>
 
@@ -123,11 +201,62 @@ export default function StudentDashboard() {
             <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-blue-700">
-              Book available time slots by clicking on them. Your teacher will be notified of your booking.
-            </p>
+            <div>
+              <p className="text-sm text-blue-700">
+                Book available time slots by clicking on them. Your teacher will be notified of your booking.
+              </p>
+              {hasBookedSlot && (
+                <p className="text-sm text-green-600 mt-1">
+                  You have already booked a slot for today. You cannot book another one.
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Confirmation Popup */}
+        {showConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4">Confirm Booking</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to book this slot? Once booked, you cannot change it.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelBooking}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBooking}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Popup */}
+        {showError && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4">Booking Error</h3>
+              <p className="text-gray-600 mb-6">{errorMessage}</p>
+              <div className="flex justify-end">
+                <button
+                  onClick={closeError}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
