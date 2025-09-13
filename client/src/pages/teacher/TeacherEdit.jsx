@@ -31,32 +31,32 @@ export default function TeacherEdit() {
   };
 
   const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  const times = Array.from(new Set(slots.map((s)=>`${s.start}-${s.end}`))).sort();
+  const times = Array.from(new Set(slots.map((s) => `${s.start}-${s.end}`))).sort();
   
   // For mobile view, show only one day at a time
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-blue-100">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+      <header className="bg-white shadow-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden mr-3 text-blue-700 focus:outline-none"
+              className="md:hidden mr-3 text-red-700 focus:outline-none"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-xl md:text-2xl font-bold text-blue-800">Edit Timetable</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Edit Timetable</h1>
           </div>
           
           <div className="flex items-center space-x-4">
             <button 
               onClick={() => nav('/teacher')} 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -68,17 +68,17 @@ export default function TeacherEdit() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto p-4 md:p-6">
+      <main className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Info Card */}
-        <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-blue-100">
+        <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-gray-200">
           <div className="flex items-start">
-            <div className="bg-blue-100 p-2 rounded-lg mr-4">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div className="bg-red-100 p-2 rounded-lg mr-4">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-blue-800 mb-2">Edit Booking Limits</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Edit Booking Limits</h2>
               <p className="text-gray-600 text-sm">
                 Set limits on slots that were initially free. Busy/free status can only be set during the initial setup flow.
               </p>
@@ -95,12 +95,12 @@ export default function TeacherEdit() {
         {/* Mobile Day Selector */}
         {isMobile && (
           <div className="mb-4 md:hidden">
-            <label htmlFor="day-select" className="block text-sm font-medium text-blue-800 mb-2">
+            <label htmlFor="day-select" className="block text-sm font-medium text-gray-700 mb-2">
               Select Day
             </label>
             <select
               id="day-select"
-              className="w-full p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               value={selectedDay || ''}
               onChange={(e) => setSelectedDay(e.target.value)}
             >
@@ -113,92 +113,97 @@ export default function TeacherEdit() {
         )}
 
         {/* Desktop Grid View */}
-        <div className={`bg-white rounded-xl shadow-md p-4 md:p-6 border border-blue-100 ${isMobile ? 'hidden md:block' : 'block'}`}>
-          <div className="grid" style={{ gridTemplateColumns: `120px repeat(${DAYS.length}, 1fr)` }}>
-            <div className="font-medium p-2 border-b-2 border-blue-200 text-blue-800" />
-            {DAYS.map((d) => (
-              <div key={d} className="font-medium p-2 border-b-2 border-blue-200 text-blue-800 text-center">{d}</div>
-            ))}
-            {times.map((t) => (
-              <React.Fragment key={t}>
-                <div className="p-3 border-b border-blue-100 text-sm flex items-center justify-center bg-blue-50 text-blue-700 font-medium">
-                  {t.replace('-', ' - ')}
-                </div>
-                {DAYS.map((d) => {
-                  const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
-                  if (!s) return <div key={d} className="border-b border-blue-100 p-2 bg-blue-50"/>;
-                  
-                  const bg = s.status === 'occupied' 
-                    ? 'bg-red-100 border-red-200' 
-                    : 'bg-green-100 border-green-200';
-                  
-                  const textColor = s.status === 'occupied' 
-                    ? 'text-red-800' 
-                    : 'text-green-800';
-                  
-                  return (
-                    <div key={d} className={`border-b border-blue-100 p-3 ${bg} text-sm space-y-2 transition-all duration-200 hover:shadow-md`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-xs font-medium ${textColor}`}>
-                          {s.status === 'occupied' ? 'Busy' : 'Available'}
-                        </span>
-                        <span className="text-xs font-semibold bg-white px-2 py-1 rounded-full">
-                          {s.currentBookings}/{s.maxBookings}
-                        </span>
-                      </div>
-                      {s.status === 'available' && (
-                        <button 
-                          className="w-full px-3 py-2 text-xs bg-blue-600 text-white rounded-lg transition-colors duration-200 hover:bg-blue-700 font-medium flex items-center justify-center"
-                          onClick={() => setLimit(s)}
-                        >
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                          Set Limit
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
+        <div className={`bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-200 mb-6 ${isMobile ? 'hidden md:block' : 'block'}`}>
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="w-32 p-4 bg-gray-100 border-b-2 border-gray-300 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                  Time
+                </th>
+                {DAYS.map((d) => (
+                  <th key={d} className="p-4 bg-gray-100 border-b-2 border-gray-300 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    {d}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {times.map((t) => (
+                <tr key={t} className="hover:bg-gray-50 transition-colors duration-150">
+                  <td className="p-4 border-b border-gray-200 text-sm font-medium text-gray-900 bg-gray-50">
+                    {t.replace('-', ' - ')}
+                  </td>
+                  {DAYS.map((d) => {
+                    const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
+                    if (!s) {
+                      return (
+                        <td key={d} className="p-4 border-b border-gray-200 bg-white"></td>
+                      );
+                    }
+
+                    const bg = s.status === 'occupied' 
+                      ? 'bg-red-800' 
+                      : 'bg-green-100';
+                    
+                    return (
+                      <td key={d} className="p-4 border-b border-gray-200">
+                        <div className={`${bg} rounded-lg p-3 text-center shadow-sm ${s.status === 'occupied' ? 'text-white' : ''}`}>
+                          <span className={`text-sm font-medium ${s.status === 'occupied' ? '' : 'text-green-800'}`}>
+                            {s.status === 'occupied' ? 'Busy' : 'Available'}
+                          </span>
+                          <div className="mt-1 text-xs">
+                            {s.currentBookings}/{s.maxBookings} bookings
+                          </div>
+                          {s.status === 'available' && (
+                            <button 
+                              className="mt-2 px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
+                              onClick={() => setLimit(s)}
+                            >
+                              Set Limit
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Mobile List View */}
         {isMobile && (
           <div className="md:hidden space-y-4">
             {(selectedDay ? [selectedDay] : DAYS).map((d) => (
-              <div key={d} className="bg-white rounded-xl shadow-md p-5 border border-blue-100">
-                <h3 className="font-medium text-blue-800 text-center mb-4 text-lg">{d}</h3>
+              <div key={d} className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
+                <h3 className="font-semibold text-gray-900 text-center mb-4 text-lg">{d}</h3>
                 <div className="space-y-3">
                   {slots
                     .filter(s => s.day === d)
                     .sort((a, b) => a.start.localeCompare(b.start))
                     .map((s) => {
                       const bg = s.status === 'occupied' 
-                        ? 'bg-red-100 border-red-200' 
-                        : 'bg-green-100 border-green-200';
-                      
-                      const textColor = s.status === 'occupied' 
-                        ? 'text-red-800' 
-                        : 'text-green-800';
+                        ? 'bg-red-800' 
+                        : 'bg-green-100';
                       
                       return (
-                        <div key={s._id} className={`p-4 rounded-lg border ${bg} space-y-3`}>
+                        <div key={s._id} className={`${bg} rounded-lg p-4 shadow-sm ${s.status === 'occupied' ? 'text-white' : ''}`}>
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">{s.start} - {s.end}</span>
-                            <span className={`text-xs font-medium ${textColor}`}>
+                            <span className="font-medium">
+                              {s.start} - {s.end}
+                            </span>
+                            <span className={`text-xs font-medium ${s.status === 'occupied' ? '' : 'text-green-800'}`}>
                               {s.status === 'occupied' ? 'Busy' : 'Available'}
                             </span>
                           </div>
-                          <div className="flex justify-between items-center">
+                          <div className="flex justify-between items-center mt-2">
                             <span className="text-sm">
-                              Bookings: {s.currentBookings}/{s.maxBookings}
+                              {s.currentBookings}/{s.maxBookings} bookings
                             </span>
                             {s.status === 'available' && (
                               <button 
-                                className="px-3 py-2 text-xs bg-blue-600 text-white rounded-lg transition-colors duration-200 hover:bg-blue-700 font-medium"
+                                className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
                                 onClick={() => setLimit(s)}
                               >
                                 Set Limit
@@ -216,7 +221,7 @@ export default function TeacherEdit() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-blue-100 bg-white">
+      <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-gray-200 bg-white">
         <p>Teacher Portal • {new Date().getFullYear()}</p>
       </footer>
     </div>
