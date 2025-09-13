@@ -62,44 +62,69 @@ export async function uploadTeachers(req, res) {
 
 export async function uploadStudents(req, res) {
   const rows = loadRows(req.file);
-  const allowedColumns = ['name', 'email', 'password', 'studentId', 'teacherId'];
+  const allowed = ['name', 'email', 'password', 'studentId', 'teacherIds'];
+  const legacy = ['teacherId'];
   if (rows.length > 0) {
-    const fileColumns = Object.keys(rows[0]).map(c => c.trim().toLowerCase());
-    const normalizedAllowed = allowedColumns.map(c => c.toLowerCase());
-    const extra = fileColumns.filter(c => !normalizedAllowed.includes(c));
-    const missing = normalizedAllowed.filter(c => !fileColumns.includes(c));
-    if (extra.length > 0 || missing.length > 0) {
+    const fileColumns = Object.keys(rows[0]).map((c) => c.trim().toLowerCase());
+    const normalizedAllowed = allowed.map((c) => c.toLowerCase());
+    const normalizedLegacy = legacy.map((c) => c.toLowerCase());
+    const extra = fileColumns.filter((c) => !normalizedAllowed.includes(c) && !normalizedLegacy.includes(c));
+    // Must include name,email and at least one of teacherIds/teacherId
+    const missingRequired = ['name', 'email'].filter((c) => !fileColumns.includes(c));
+    const hasTeacherColumn = fileColumns.includes('teacherids') || fileColumns.includes('teacherid');
+    if (extra.length > 0 || missingRequired.length > 0 || !hasTeacherColumn) {
       if (req.file?.path) fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ error: `Invalid columns. Allowed: ${allowedColumns.join(', ')}. Extra: ${extra.join(', ')}. Missing: ${missing.join(', ')}` });
+      const cols = [...allowed, ...legacy];
+      return res.status(400).json({ error: `Invalid columns. Allowed: ${cols.join(', ')}. Extra: ${extra.join(', ')}. Missing required: ${missingRequired.join(', ')}. Must include teacherIds or teacherId.` });
     }
   }
+
+  function parseTeacherIds(row) {
+    const raw = row.teacherIds ?? row.teacherId ?? '';
+    if (Array.isArray(raw)) return raw.map(String).map((x) => x.trim()).filter(Boolean);
+    if (typeof raw !== 'string') return [];
+    return raw
+      .split(/[,;|\s]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
   const created = [];
   for (const row of rows) {
     try {
-      const name = row.name;
-      const email = row.email;
-      const teacherId = row.teacherId;
-      if (!name || !email || !teacherId) continue;
+      const name = row.name?.trim();
+      const email = row.email?.trim().toLowerCase();
+      const teacherIds = parseTeacherIds(row);
+      if (!name || !email || teacherIds.length === 0) continue;
       const studentId = row.studentId || `S-${nanoid(6)}`;
       const password = row.password || nanoid(10);
       const passwordHash = await bcrypt.hash(password, 10);
 
       let user = await User.findOne({ email });
       if (user) {
-        user.name = name; user.role = 'student'; user.passwordHash = passwordHash; user.teacherId = teacherId; user.mustChangePassword = true;
+        user.name = name;
+        user.role = 'student';
+        user.passwordHash = passwordHash;
+        // Keep first teacherId for backward compatibility display only
+        user.teacherId = teacherIds[0];
+        user.mustChangePassword = true;
         await user.save();
       } else {
-        user = await User.create({ role: 'student', name, email, passwordHash, teacherId, mustChangePassword: true });
+        user = await User.create({ role: 'student', name, email, passwordHash, teacherId: teacherIds[0], mustChangePassword: true });
       }
 
       const existing = await Student.findOne({ email });
       if (existing) {
-        existing.studentId = studentId; existing.teacherId = teacherId; await existing.save();
+        existing.studentId = studentId;
+        // Merge with existing teacherIds to avoid losing manual links
+        const set = new Set([...(existing.teacherIds || []), ...teacherIds]);
+        existing.teacherIds = Array.from(set);
+        await existing.save();
       } else {
-        await Student.create({ studentId, name, email, teacherId });
+        await Student.create({ studentId, name, email, teacherIds });
       }
 
-      created.push({ studentId, name, email, teacherId, password });
+      created.push({ studentId, name, email, teacherIds, password });
     } catch (e) {
       created.push({ error: e.message, row });
     }
@@ -115,21 +140,51 @@ export async function listUsers(req, res) {
   const { Teacher } = await import('../models/Teacher.js');
   const teacherDocs = await Teacher.find({});
   for (const t of teacherDocs) teachersByEmail.set(t.email, t.teacherId);
-  const enriched = users.map((u) => ({
-    ...u.toObject(),
-    teacherId: u.teacherId || (u.role === 'teacher' ? teachersByEmail.get(u.email) || undefined : u.teacherId),
-  }));
+
+  // Map student email -> teacherIds
+  const studentDocs = await Student.find({}).select('email teacherIds');
+  const studentTeacherIds = new Map(studentDocs.map((s) => [s.email, s.teacherIds || []]));
+
+  const enriched = users.map((u) => {
+    const obj = u.toObject();
+    const role = obj.role;
+    const fallbackTeacherId = role === 'teacher' ? teachersByEmail.get(obj.email) || undefined : obj.teacherId;
+    const ids = role === 'student' ? studentTeacherIds.get(obj.email) || [] : undefined;
+    return {
+      ...obj,
+      teacherId: obj.teacherId || fallbackTeacherId,
+      studentTeacherIds: ids,
+    };
+  });
   res.json({ users: enriched });
 }
 
 export async function linkStudentTeacher(req, res) {
-  const { studentEmail, teacherId } = req.body;
+  const { studentEmail } = req.body;
+  let { teacherId, teacherIds } = req.body;
   const user = await User.findOne({ email: studentEmail, role: 'student' });
   if (!user) return res.status(404).json({ message: 'Student not found' });
-  user.teacherId = teacherId;
+
+  const student = await Student.findOne({ email: studentEmail });
+  if (!student) return res.status(404).json({ message: 'Student profile not found' });
+
+  let updatedIds;
+  if (Array.isArray(teacherIds)) {
+    updatedIds = Array.from(new Set(teacherIds.filter(Boolean)));
+  } else if (typeof teacherId === 'string' && teacherId.trim()) {
+    updatedIds = Array.from(new Set([...(student.teacherIds || []), teacherId.trim()]));
+  } else {
+    return res.status(400).json({ message: 'Provide teacherId or teacherIds' });
+  }
+
+  student.teacherIds = updatedIds;
+  await student.save();
+
+  // Keep first for backward compatible display only
+  user.teacherId = updatedIds[0];
   await user.save();
-  await Student.updateOne({ email: studentEmail }, { teacherId });
-  res.json({ message: 'Linked' });
+
+  res.json({ message: 'Linked', teacherIds: updatedIds });
 }
 
 export async function resetTeacherPassword(req, res) {

@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
 import Timetable from '../../shared/Timetable.jsx';
 
 export default function StudentDashboard() {
   const { api, logout, user } = useAuth();
-  const [teacherId, setTeacherId] = useState('');
-  const [teacherName, setTeacherName] = useState('');
-  const [timetable, setTimetable] = useState([]);
+  const [teachers, setTeachers] = useState([]); // [{teacherId, teacherName, timetable}]
+  const [selectedTeacherId, setSelectedTeacherId] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasBookedSlot, setHasBookedSlot] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -18,21 +17,15 @@ export default function StudentDashboard() {
   const load = async () => {
     try {
       const { data } = await api.get('/student/timetable');
-      setTeacherId(data.teacherId || '');
-      setTeacherName(data.teacherName || 'Not assigned');
-      setTimetable(data.timetable || []);
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const booked = data.timetable.some(slot =>
-        slot.bookedBy === user?.id &&
-        new Date(slot.startTime).toDateString() === today.toDateString()
-      );
-      setHasBookedSlot(booked);
+      const tchs = data.teachers || [];
+      setTeachers(tchs);
+      const fallback = data.teacherId || (tchs[0]?.teacherId ?? '');
+      setSelectedTeacherId(fallback);
+      // derive hasBookedSlot from API if provided; otherwise compute from bookings on timetable if available
+      recomputeHasBooked(tchs, fallback);
     } catch (error) {
       console.error('Error loading data:', error);
-      setTeacherName('Not assigned');
-      setTimetable([]);
+      setTeachers([]);
       setHasBookedSlot(false);
     }
   };
@@ -41,10 +34,42 @@ export default function StudentDashboard() {
     load();
   }, []);
 
+  const currentTeacher = useMemo(() => teachers.find(t => t.teacherId === selectedTeacherId), [teachers, selectedTeacherId]);
+  const teacherName = currentTeacher?.teacherName || 'Not assigned';
+  const timetable = currentTeacher?.timetable || [];
+
+  const recomputeHasBooked = (list = teachers, tid = selectedTeacherId) => {
+    const t = list.find(x => x.teacherId === tid);
+    if (!t) return setHasBookedSlot(false);
+    if (typeof t.hasBookedToday === 'boolean') {
+      setHasBookedSlot(t.hasBookedToday);
+      return;
+    }
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const booked = (t.timetable || []).some(slot => {
+      if (!slot.startTime) return false;
+      const dt = new Date(slot.startTime);
+      return dt >= today && dt < new Date(today.getTime() + 24*60*60*1000) && slot.currentBookings > 0;
+    });
+    setHasBookedSlot(Boolean(booked));
+  };
+
+  const dayToIndex = (d) => ({ SUN:0, MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6 })[d] ?? -1;
+  const nowHM = () => {
+    const dt = new Date();
+    return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+  };
+  const timeLTE = (a,b) => String(a || '').localeCompare(String(b || '')) <= 0;
+
   const isPastSlot = (slot) => {
-    const now = new Date();
-    const slotTime = new Date(slot.startTime);
-    return slotTime < now;
+    const si = dayToIndex(slot.day);
+    if (si < 0) return false;
+    const today = new Date().getDay();
+    if (si < today) return true;
+    if (si > today) return false;
+    const end = slot.end || slot.start;
+    return timeLTE(end, nowHM());
   };
 
   const onBook = (slot) => {
@@ -64,7 +89,7 @@ export default function StudentDashboard() {
       return;
     }
 
-    setSelectedSlot(slot);
+    setSelectedSlot({ ...slot, teacherId: selectedTeacherId });
     setShowConfirm(true);
   };
 
@@ -72,7 +97,7 @@ export default function StudentDashboard() {
     setShowConfirm(false);
     setIsBooking(true);
     try {
-      await api.post('/student/book', { slotId: selectedSlot._id });
+      await api.post('/student/book', { slotId: selectedSlot._id, teacherId: selectedTeacherId });
       await load();
       setSelectedSlot(null);
     } catch (error) {
@@ -145,6 +170,20 @@ export default function StudentDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto p-4 md:p-6">
+        {teachers.length > 1 && (
+          <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-blue-100">
+            <label className="block text-sm font-medium text-blue-800 mb-2">Select Teacher</label>
+            <select
+              className="w-full md:w-80 p-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={selectedTeacherId}
+              onChange={(e) => { setSelectedTeacherId(e.target.value); recomputeHasBooked(teachers, e.target.value); }}
+            >
+              {teachers.map(t => (
+                <option key={t.teacherId} value={t.teacherId}>{t.teacherName}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-blue-100 transition-all duration-300 hover:shadow-lg">
           <div className="flex items-center">
             <div className="bg-blue-100 p-3 rounded-lg mr-4">
@@ -164,7 +203,7 @@ export default function StudentDashboard() {
 
         <div className="bg-white rounded-xl shadow-md p-5 border border-blue-100">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-lg font-semibold text-blue-800">Class Schedule</h2>
+            <h2 className="text-lg font-semibold text-blue-800">Class Schedule - {teacherName}</h2>
             <button
               onClick={load}
               className="text-blue-600 hover:text-blue-800 transition-colors duration-300 flex items-center text-sm"

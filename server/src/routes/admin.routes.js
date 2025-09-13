@@ -33,4 +33,32 @@ router.post('/maintenance/backfill-teachers', async (req, res) => {
 	res.json({ updated });
 });
 
+// Backfill students: normalize and propagate teacherIds from possibly delimited user.teacherId into Student.teacherIds
+router.post('/maintenance/backfill-students', async (req, res) => {
+	const students = await User.find({ role: 'student' });
+	let updated = 0;
+	const normalize = (v) => {
+		if (!v) return [];
+		if (Array.isArray(v)) return v.map(String).map((x) => x.trim()).filter(Boolean);
+		return String(v).split(/[,;|\s]+/).map((x) => x.trim()).filter(Boolean);
+	};
+	for (const u of students) {
+		const ids = normalize(u.teacherId);
+		const s = await (await import('../models/Student.js')).Student.findOne({ email: u.email });
+		if (!s) continue;
+		const set = new Set([...(s.teacherIds || []), ...ids]);
+		const next = Array.from(set);
+		if (next.length === 0) continue;
+		s.teacherIds = next;
+		// Keep first for display compatibility
+		if (!u.teacherId || u.teacherId !== next[0]) {
+			u.teacherId = next[0];
+			await u.save();
+		}
+		await s.save();
+		updated++;
+	}
+	res.json({ updated });
+});
+
 export default router;
