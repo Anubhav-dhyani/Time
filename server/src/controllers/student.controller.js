@@ -18,6 +18,21 @@ function isSlotInPast(slot){
   return timeLTE(slot.end, now);
 }
 
+// Default grid (same as teacher controller)
+const DEFAULT_TIMES = [
+  ['08:00', '08:55'],
+  ['08:55', '09:50'],
+  ['10:10', '11:05'],
+  ['11:05', '12:00'],
+  ['12:00', '12:55'],
+  ['12:55', '13:50'],
+  ['14:10', '15:05'],
+  ['15:05', '16:00'],
+  ['16:00', '16:55'],
+  ['16:55', '17:50'],
+];
+const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
 export async function getAssignedTimetable(req, res) {
   try {
     const user = await User.findById(req.user.id);
@@ -38,6 +53,14 @@ export async function getAssignedTimetable(req, res) {
     const ordered = assignedIds.map((id) => teachersById.get(id)).filter(Boolean);
 
     for (const t of ordered) {
+      if (!t.timetable || t.timetable.length === 0) {
+        for (const day of DAYS) {
+          for (const [start, end] of DEFAULT_TIMES) {
+            t.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
+          }
+        }
+        await t.save();
+      }
       await resetPastSlotsForTeacher(t);
     }
 
