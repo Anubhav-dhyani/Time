@@ -14,8 +14,9 @@ function groupByDay(slots) {
   return byDay;
 }
 
-export default function Timetable({ slots = [], canBook = false }) {
+export default function Timetable({ slots = [], canBook = false, onBook, isPastSlot }) {
   const grouped = useMemo(() => groupByDay(slots), [slots]);
+  const isPast = (slot) => (typeof isPastSlot === 'function' ? isPastSlot(slot) : false);
 
   // Get all unique time slots
   const times = useMemo(() => {
@@ -68,6 +69,7 @@ export default function Timetable({ slots = [], canBook = false }) {
                     statusText = 'Available';
                   }
 
+                  const bookable = canBook && slot.status === 'available' && !isPast(slot) && (slot.currentBookings < slot.maxBookings);
                   return (
                     <td key={`${day}-${time}`} className="p-4 border-b border-gray-200">
                       <div className={`${bgColor} rounded-lg p-3 text-center shadow-sm`}>
@@ -78,6 +80,14 @@ export default function Timetable({ slots = [], canBook = false }) {
                           <div className="mt-1 text-xs text-gray-600">
                             {slot.currentBookings}/{slot.maxBookings} bookings
                           </div>
+                        )}
+                        {bookable && (
+                          <button
+                            className="mt-2 inline-flex items-center px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
+                            onClick={() => onBook && onBook(slot)}
+                          >
+                            Book Now
+                          </button>
                         )}
                       </div>
                     </td>
@@ -109,6 +119,7 @@ export default function Timetable({ slots = [], canBook = false }) {
                   statusText = 'Available';
                 }
 
+                const bookable = canBook && slot.status === 'available' && !isPast(slot) && (slot.currentBookings < slot.maxBookings);
                 return (
                   <div key={`${day}-${slot.start}-${slot.end}`} className={`${bgColor} rounded-lg p-3 shadow-sm`}>
                     <div className="flex justify-between items-center">
@@ -123,6 +134,14 @@ export default function Timetable({ slots = [], canBook = false }) {
                       <div className="mt-1 text-xs text-gray-600">
                         {slot.currentBookings}/{slot.maxBookings} bookings
                       </div>
+                    )}
+                    {bookable && (
+                      <button
+                        className="mt-2 w-full inline-flex items-center justify-center px-3 py-2 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
+                        onClick={() => onBook && onBook(slot)}
+                      >
+                        Book Now
+                      </button>
                     )}
                   </div>
                 );

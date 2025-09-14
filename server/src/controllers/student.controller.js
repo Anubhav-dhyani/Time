@@ -146,7 +146,7 @@ export async function bookSlot(req, res) {
     });
 
     if (dailyBooking) {
-      return res.status(400).json({ message: "You can't access to book slot again. You already have a booking for today." });
+      return res.status(400).json({ message: "You already have a booking with this teacher today." });
     }
 
   await Booking.create({ studentUserId: me._id, teacherId, slotId, status: 'booked' });

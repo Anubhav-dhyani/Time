@@ -150,7 +150,7 @@ export default function StudentDashboard() {
               <p className="text-sm font-medium text-blue-800">Student: {user?.name || 'Student'}</p>
               <p className="text-sm font-medium text-blue-800">Teacher: {teacherName}</p>
               {hasBookedSlot && (
-                <p className="text-sm font-medium text-green-600">You have booked a slot for today</p>
+                <p className="text-sm font-medium text-green-600">You have booked a slot with this teacher today</p>
               )}
             </div>
             <div className="relative">
@@ -204,7 +204,7 @@ export default function StudentDashboard() {
               <h2 className="text-lg font-semibold text-blue-800">Welcome, {user?.name || 'Student'}!</h2>
               <p className="text-gray-600 text-sm">View and book available time slots with your teacher</p>
               {hasBookedSlot && (
-                <p className="text-green-600 text-sm mt-1">You have already booked a slot for today. You cannot book another one.</p>
+                <p className="text-green-600 text-sm mt-1">You already have a booking with this teacher today. You cannot book another one.</p>
               )}
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function StudentDashboard() {
               </p>
               {hasBookedSlot && (
                 <p className="text-sm text-green-600 mt-1">
-                  You have already booked a slot for today. You cannot book another one.
+                  You already have a booking with this teacher today. You cannot book another one.
                 </p>
               )}
             </div>
