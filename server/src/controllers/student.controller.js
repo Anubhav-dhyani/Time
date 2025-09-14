@@ -82,6 +82,7 @@ export async function getAssignedTimetable(req, res) {
       teacherId: t.teacherId,
       teacherName: t.name,
       timetable: t.timetable,
+      notes: Array.isArray(t.dailyNotes) ? t.dailyNotes : [],
       hasBookedToday: bookedSet.has(t.teacherId),
     }));
 
@@ -92,6 +93,7 @@ export async function getAssignedTimetable(req, res) {
       teacherId: first?.teacherId || null,
       teacherName: first?.teacherName || 'Not assigned',
       timetable: first?.timetable || [],
+      notes: first?.notes || [],
       hasBookedToday: first?.hasBookedToday || false,
     });
   } catch (error) {

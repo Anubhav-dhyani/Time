@@ -38,6 +38,14 @@ export default function StudentDashboard() {
   const currentTeacher = useMemo(() => teachers.find(t => t.teacherId === selectedTeacherId), [teachers, selectedTeacherId]);
   const teacherName = currentTeacher?.teacherName || 'Not assigned';
   const timetable = currentTeacher?.timetable || [];
+  const notes = currentTeacher?.notes || [];
+  const DAYS = ['MON','TUE','WED','THU','FRI','SAT'];
+  const dayIndex = (d) => ({ SUN:0, MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6 })[d] ?? 7;
+  const filledNotes = useMemo(() => {
+    return (notes || [])
+      .filter(n => (n?.venue && n.venue.trim().length) || (n?.description && n.description.trim().length))
+      .sort((a,b) => dayIndex(a.day) - dayIndex(b.day));
+  }, [notes]);
 
   const recomputeHasBooked = (list = teachers, tid = selectedTeacherId) => {
     const t = list.find(x => x.teacherId === tid);
@@ -224,6 +232,25 @@ export default function StudentDashboard() {
               isPastSlot={isPastSlot}
             />
           </div>
+          {/* Daily notes visible to students (only non-empty) */}
+          {filledNotes.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-md font-semibold text-blue-800 mb-3">Daily Notes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {filledNotes.map((note) => (
+                  <div key={note.day} className="border border-blue-100 rounded-lg p-3 bg-blue-50/30">
+                    <div className="text-sm text-blue-900 font-medium">{note.day}</div>
+                    {note.venue?.trim() && (
+                      <div className="text-sm text-blue-800"><span className="font-medium">Venue:</span> {note.venue}</div>
+                    )}
+                    {note.description?.trim() && (
+                      <div className="text-sm text-blue-800 mt-1">{note.description}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-100">

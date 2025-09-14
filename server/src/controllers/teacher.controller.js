@@ -161,3 +161,42 @@ export async function saveSetupTimetable(req, res) {
   await teacher.save();
   res.json({ ok: true, timetable: teacher.timetable });
 }
+
+// Daily Notes (venue + description per day)
+export async function getDailyNotes(req, res) {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  if (!Array.isArray(teacher.dailyNotes)) teacher.dailyNotes = [];
+  // Ensure all DAYS exist in the list (without duplicating)
+  const existing = new Map((teacher.dailyNotes || []).map((n) => [n.day, n]));
+  for (const d of DAYS) {
+    if (!existing.has(d)) {
+      teacher.dailyNotes.push({ day: d, venue: '', description: '' });
+    }
+  }
+  await teacher.save();
+  res.json({ notes: teacher.dailyNotes });
+}
+
+export async function saveDailyNotes(req, res) {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const payload = req.body?.notes || req.body?.note || req.body;
+  const arr = Array.isArray(payload) ? payload : [payload];
+  const validDays = new Set(DAYS);
+  if (!Array.isArray(teacher.dailyNotes)) teacher.dailyNotes = [];
+  const byDay = new Map(teacher.dailyNotes.map((n) => [n.day, n]));
+  for (const item of arr) {
+    if (!item || !validDays.has(item.day)) continue;
+    const current = byDay.get(item.day);
+    if (current) {
+      current.venue = item.venue ?? current.venue ?? '';
+      current.description = item.description ?? current.description ?? '';
+    } else {
+      teacher.dailyNotes.push({ day: item.day, venue: item.venue || '', description: item.description || '' });
+      byDay.set(item.day, teacher.dailyNotes[teacher.dailyNotes.length - 1]);
+    }
+  }
+  await teacher.save();
+  res.json({ notes: teacher.dailyNotes });
+}

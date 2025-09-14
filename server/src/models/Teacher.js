@@ -13,12 +13,22 @@ const slotSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const dayNoteSchema = new mongoose.Schema(
+  {
+    day: { type: String, enum: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], required: true },
+    venue: { type: String, default: '' },
+    description: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
 const teacherSchema = new mongoose.Schema(
   {
     teacherId: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     timetable: [slotSchema],
+  dailyNotes: [dayNoteSchema],
   mustSetupTimetable: { type: Boolean, default: true },
   },
   { timestamps: true }

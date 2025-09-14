@@ -11,6 +11,8 @@ export default function TeacherDashboard() {
   const [mustSetup, setMustSetup] = useState(false);
   const [activeTab, setActiveTab] = useState('timetable');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [notes, setNotes] = useState([]); // [{day, venue, description}]
+  const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   const load = async () => {
     try {
@@ -19,6 +21,8 @@ export default function TeacherDashboard() {
       setMustSetup(data.mustSetup);
       const b = await api.get('/teacher/bookings');
       setBookings(b.data.bookings);
+      const n = await api.get('/teacher/daily-notes');
+      setNotes(n.data.notes || []);
     } catch (error) {
       console.error('Error loading teacher data:', error);
     }
@@ -148,6 +152,12 @@ export default function TeacherDashboard() {
           >
             Bookings ({bookings.length})
           </button>
+          <button
+            className={`py-3 px-6 font-medium text-sm ${activeTab === 'notes' ? 'text-white bg-red-800 border-b-2 border-red-900' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
+            onClick={() => setActiveTab('notes')}
+          >
+            Daily Notes
+          </button>
         </div>
 
         {activeTab === 'timetable' && (
@@ -223,6 +233,67 @@ export default function TeacherDashboard() {
                   <p className="mt-2 text-sm text-gray-500">No bookings yet</p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'notes' && (
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-semibold text-gray-900">Daily Notes</h2>
+              <button
+                onClick={async () => {
+                  try {
+                    await api.post('/teacher/daily-notes', { notes });
+                    const n = await api.get('/teacher/daily-notes');
+                    setNotes(n.data.notes || []);
+                  } catch (e) {
+                    console.error('Failed saving notes', e);
+                  }
+                }}
+                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Save
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {DAYS.map((d) => {
+                const idx = (notes || []).findIndex((n) => n.day === d);
+                const note = idx >= 0 ? notes[idx] : { day: d, venue: '', description: '' };
+                return (
+                  <div key={d} className="border rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-800 mb-2">{d}</h3>
+                    <label className="block text-sm text-gray-700 mb-1">Venue</label>
+                    <input
+                      className="w-full border border-gray-300 rounded-md p-2 mb-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      value={note.venue}
+                      onChange={(e) => {
+                        const updated = [...(notes || [])];
+                        if (idx >= 0) updated[idx] = { ...note, venue: e.target.value };
+                        else updated.push({ ...note, venue: e.target.value });
+                        setNotes(updated);
+                      }}
+                      placeholder="e.g., Room 210"
+                    />
+                    <label className="block text-sm text-gray-700 mb-1">Description</label>
+                    <textarea
+                      className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      value={note.description}
+                      onChange={(e) => {
+                        const updated = [...(notes || [])];
+                        if (idx >= 0) updated[idx] = { ...note, description: e.target.value };
+                        else updated.push({ ...note, description: e.target.value });
+                        setNotes(updated);
+                      }}
+                      placeholder="Short note for students"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
