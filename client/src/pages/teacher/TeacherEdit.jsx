@@ -13,7 +13,12 @@ export default function TeacherEdit() {
   const load = async () => {
     try {
       const { data } = await api.get('/teacher/timetable');
-      setSlots(data.timetable);
+      // Normalize maxBookings to 5 if missing or less than 5
+      const normalized = (data.timetable || []).map(s => ({
+        ...s,
+        maxBookings: !s.maxBookings || s.maxBookings < 5 ? 5 : s.maxBookings
+      }));
+      setSlots(normalized);
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load timetable');
     }
@@ -25,7 +30,7 @@ export default function TeacherEdit() {
     const v = prompt('Max bookings for this slot', s.maxBookings);
     if (!v) return;
     const n = parseInt(v, 10);
-    if (Number.isNaN(n) || n < 1) return alert('Please enter a number greater than or equal to 1');
+    if (Number.isNaN(n) || n < 5) return alert('Please enter a number greater than or equal to 5');
     await api.post('/teacher/timetable/slot', { slotId: s._id, maxBookings: n });
     await load();
   };

@@ -5,7 +5,7 @@ const slotSchema = new mongoose.Schema(
     day: { type: String, enum: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], required: true },
     start: { type: String, required: true }, // e.g., "08:00"
     end: { type: String, required: true },
-    status: { type: String, enum: ['available', 'occupied'], default: 'available' },
+    status: { type: String, enum: ['available', 'occupied'], default: 'occupied' },
     maxBookings: { type: Number, default: 1 },
     currentBookings: { type: Number, default: 0 },
   initiallyBusy: { type: Boolean, default: false },

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -11,13 +12,38 @@ export default function TeacherDashboard() {
   const [mustSetup, setMustSetup] = useState(false);
   const [activeTab, setActiveTab] = useState('timetable');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [notes, setNotes] = useState([]); // [{day, venue, description}]
+  const [notes, setNotes] = useState([]);
   const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+  // CSV upload state
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvUploadMsg, setCsvUploadMsg] = useState('');
+
+  // Handle CSV upload
+  const handleCsvUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCsvUploading(true);
+    setCsvUploadMsg('');
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post('/teacher/upload-students', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setCsvUploadMsg(res.data?.message || 'Upload successful!');
+      await load();
+    } catch (err) {
+      setCsvUploadMsg(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setCsvUploading(false);
+    }
+  };
 
   const load = async () => {
     try {
       const { data } = await api.get('/teacher/timetable');
-      setTimetable(data.timetable);
+      setTimetable(data.timetable || []);
       setMustSetup(data.mustSetup);
       const b = await api.get('/teacher/bookings');
       setBookings(b.data.bookings);
@@ -139,6 +165,16 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
+        {/* CSV Upload UI */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="bg-white rounded-xl shadow-md p-4 mb-6 border border-gray-200 flex flex-col md:flex-row items-center gap-4">
+          <label className="font-medium text-gray-700">Upload Students CSV:</label>
+          <input type="file" accept=".csv" onChange={handleCsvUpload} disabled={csvUploading} className="block" />
+          {csvUploading && <span className="text-red-600 ml-2">Uploading...</span>}
+          {csvUploadMsg && <span className="ml-2 text-sm text-gray-600">{csvUploadMsg}</span>}
+        </div>
+      </div>
+
         <div className="flex border-b border-gray-200 mb-6">
           <button
             className={`py-3 px-6 font-medium text-sm ${activeTab === 'timetable' ? 'text-white bg-red-800 border-b-2 border-red-900' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
@@ -183,15 +219,40 @@ export default function TeacherDashboard() {
           <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-lg font-semibold text-gray-900">Student Bookings</h2>
-              <button
-                onClick={load}
-                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={load}
+                  className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await api.get('/teacher/bookings-csv', { responseType: 'blob' });
+                      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', 'bookings-history.csv');
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                    } catch (e) {
+                      alert('Failed to download CSV');
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm border border-red-200 rounded px-2 py-1"
+                  title="Download all bookings as CSV"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Download CSV
+                </button>
+              </div>
             </div>
 
             <div className="overflow-auto rounded-lg border border-gray-200">

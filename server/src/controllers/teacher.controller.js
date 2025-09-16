@@ -1,6 +1,95 @@
+
 import { Teacher } from '../models/Teacher.js';
 import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
+import { Student } from '../models/Student.js';
+import Papa from 'papaparse';
+// Download all bookings for the week as CSV
+export async function downloadBookingsCsv(req, res) {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  // Find all bookings for this teacher for the current week (all statuses)
+  const bookings = await Booking.find({ teacherId: teacher.teacherId });
+  // Get all students referenced
+  const studentIds = bookings.map(b => b.studentUserId).filter(Boolean);
+  const students = await Student.find({ _id: { $in: studentIds } });
+  const studentMap = new Map(students.map(s => [String(s._id), s]));
+  // Map slotId to slot details
+  const slotMap = new Map((teacher.timetable || []).map(s => [String(s._id), s]));
+  // Compose CSV rows
+  const rows = bookings.map(b => {
+    const student = studentMap.get(String(b.studentUserId)) || {};
+    const slot = slotMap.get(String(b.slotId)) || {};
+    return {
+      bookingId: b._id,
+      studentName: student.name || '',
+      studentEmail: student.email || '',
+      studentId: student.studentId || '',
+      day: slot.day || '',
+      start: slot.start || '',
+      end: slot.end || '',
+      status: b.status,
+      createdAt: b.createdAt ? b.createdAt.toISOString() : '',
+      updatedAt: b.updatedAt ? b.updatedAt.toISOString() : '',
+    };
+  });
+  const csv = Papa.unparse(rows);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="bookings-history.csv"');
+  res.send(csv);
+}
+import { Student } from '../models/Student.js';
+import fs from 'fs';
+import Papa from 'papaparse';
+// CSV upload: assign students to teacher
+export async function uploadStudentsCsv(req, res) {
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const filePath = req.file.path;
+  let csvText;
+  try {
+    csvText = fs.readFileSync(filePath, 'utf8');
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to read uploaded file' });
+  }
+  // Parse CSV: expect columns like name,email,studentId (header row required)
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+  if (!parsed.data || !Array.isArray(parsed.data) || parsed.data.length === 0) {
+    return res.status(400).json({ message: 'CSV is empty or invalid' });
+  }
+  let added = 0, updated = 0, errors = [];
+  for (const row of parsed.data) {
+    const name = row.name?.trim();
+    const email = row.email?.trim();
+    const studentId = row.studentId?.trim();
+    if (!name || !email || !studentId) {
+      errors.push(`Missing fields in row: ${JSON.stringify(row)}`);
+      continue;
+    }
+    let student = await Student.findOne({ studentId });
+    if (!student) {
+      // Create new student
+      try {
+        student = await Student.create({ name, email, studentId, teacherIds: [teacher.teacherId] });
+        added++;
+      } catch (e) {
+        errors.push(`Failed to create student ${studentId}: ${e.message}`);
+        continue;
+      }
+    } else {
+      // Update teacherIds if not present
+      if (!student.teacherIds.includes(teacher.teacherId)) {
+        student.teacherIds.push(teacher.teacherId);
+        await student.save();
+        updated++;
+      }
+    }
+  }
+  // Clean up uploaded file
+  fs.unlink(filePath, () => {});
+  res.json({ message: `Processed CSV: ${added} added, ${updated} updated, ${errors.length} errors`, errors });
+}
 
 const DEFAULT_TIMES = [
   ['08:00', '08:55'],
@@ -50,7 +139,7 @@ export async function resetPastSlotsForTeacher(teacher) {
         await Booking.updateMany({ teacherId: teacher.teacherId, slotId: s._id, status: 'booked' }, { $set: { status: 'expired' } });
         s.currentBookings = 0;
         // Reset to available unless teacher marked this slot busy initially
-        s.status = s.initiallyBusy ? 'occupied' : 'available';
+        s.status = s.initiallyBusy ? 'available' : 'occupied';
         changed = true;
       }
     }
@@ -64,13 +153,18 @@ export async function getMyTimetable(req, res) {
   if (!teacher.timetable || teacher.timetable.length === 0) {
     for (const day of DAYS) {
       for (const [start, end] of DEFAULT_TIMES) {
-    teacher.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
+  teacher.timetable.push({ day, start, end, status: 'occupied', maxBookings: 5 });
       }
     }
     await teacher.save();
   }
   await resetPastSlotsForTeacher(teacher);
-  res.json({ timetable: teacher.timetable, mustSetup: teacher.mustSetupTimetable });
+  // Normalize all slots to 'occupied' unless status is 'available'
+  const normalized = (teacher.timetable || []).map(s => ({
+    ...s.toObject(),
+    status: s.status === 'available' ? 'available' : 'occupied'
+  }));
+  res.json({ timetable: normalized, mustSetup: teacher.mustSetupTimetable });
 }
 
 export async function upsertSlots(req, res) {
@@ -86,7 +180,7 @@ export async function upsertSlots(req, res) {
       existing.status = s.status ?? existing.status;
       existing.maxBookings = s.maxBookings ?? existing.maxBookings;
     } else {
-      teacher.timetable.push({ day: s.day, start: s.start, end: s.end, status: s.status || 'available', maxBookings: s.maxBookings || 1 });
+  teacher.timetable.push({ day: s.day, start: s.start, end: s.end, status: s.status || 'occupied', maxBookings: s.maxBookings || 5 });
     }
   }
   await teacher.save();
@@ -104,7 +198,7 @@ export async function setSlotStatus(req, res) {
   }
   if (typeof maxBookings === 'number') {
     if (slot.initiallyBusy) return res.status(400).json({ message: 'Cannot set limit on an initially busy slot' });
-    if (maxBookings < 1) return res.status(400).json({ message: 'maxBookings must be >= 1' });
+    if (maxBookings < 5) return res.status(400).json({ message: 'maxBookings must be >= 5' });
     slot.maxBookings = maxBookings;
   }
   await teacher.save();
@@ -132,7 +226,7 @@ export async function getSetupTimetable(req, res) {
   if (!teacher.timetable || teacher.timetable.length === 0) {
     for (const day of DAYS) {
       for (const [start, end] of DEFAULT_TIMES) {
-        teacher.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
+        teacher.timetable.push({ day, start, end, status: 'occupied', maxBookings: 5 });
       }
     }
     await teacher.save();

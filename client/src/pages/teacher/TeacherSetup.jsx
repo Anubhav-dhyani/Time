@@ -15,7 +15,12 @@ export default function TeacherSetup() {
     (async () => {
       try {
         const { data } = await api.get('/teacher/timetable/setup');
-        setSlots(data.timetable || []);
+        // Set all slots to 'occupied' by default
+        const normalized = (data.timetable || []).map(s => ({
+          ...s,
+          status: 'occupied' // Default all slots to occupied
+        }));
+        setSlots(normalized);
       } catch (e) {
         console.error('Load error:', e);
         setError(e.response?.data?.message || 'Failed to load timetable');
@@ -26,11 +31,12 @@ export default function TeacherSetup() {
   }, []);
 
   const key = (s) => `${s.day}|${s.start}|${s.end}`;
+
   const toggleBusy = (s) => {
     setSlots((prev) =>
       prev.map((x) =>
         x._id === s._id
-          ? { ...x, status: x.status === 'occupied' ? 'available' : 'occupied' }
+          ? { ...x, status: x.status === 'available' ? 'occupied' : 'available' }
           : x
       )
     );
@@ -72,7 +78,10 @@ export default function TeacherSetup() {
     const [hours, minutes] = start.split(':').map(Number);
     return hours * 60 + minutes;
   };
-  const times = Array.from(new Set(slots.map((s) => `${s.start}-${s.end}`)))
+
+  // Set all slots to 'occupied' by default
+  const normalizedSlots = slots.map(s => ({ ...s, status: s.status === 'available' ? 'available' : 'occupied' }));
+  const times = Array.from(new Set(normalizedSlots.map((s) => `${s.start}-${s.end}`)))
     .map(t => ({ t, minutes: timeToMinutes(t) }))
     .sort((a, b) => a.minutes - b.minutes)
     .map(item => item.t);
@@ -96,9 +105,9 @@ export default function TeacherSetup() {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Mark Your Busy Times</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Mark Your Available Times</h2>
               <p className="text-gray-600 text-sm">
-                Select the time slots when you're busy. Students will only be able to book available time slots.
+                All time slots are marked busy by default. Click to toggle slots to available as needed. Students will only be able to book available time slots.
                 Limits can be set later from the edit timetable page.
               </p>
             </div>
@@ -151,14 +160,14 @@ export default function TeacherSetup() {
                     {t.replace('-', ' - ')}
                   </td>
                   {DAYS.map((d) => {
-                    const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
+                    const s = normalizedSlots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
                     if (!s) {
                       return (
                         <td key={d} className="p-4 border-b border-gray-200 bg-white"></td>
                       );
                     }
 
-                    const busy = s.status === 'occupied';
+                    const busy = s.status !== 'available';
                     const bg = busy ? 'bg-red-800' : 'bg-green-100';
                     const textColor = busy ? 'text-white' : 'text-green-800';
 
@@ -196,11 +205,11 @@ export default function TeacherSetup() {
               <div key={d} className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
                 <h3 className="font-semibold text-gray-900 text-center mb-4 text-lg">{d}</h3>
                 <div className="space-y-3">
-                  {slots
+                  {normalizedSlots
                     .filter(s => s.day === d)
                     .sort((a, b) => timeToMinutes(`${a.start}-${a.end}`) - timeToMinutes(`${b.start}-${b.end}`))
                     .map((s) => {
-                      const busy = s.status === 'occupied';
+                      const busy = s.status !== 'available';
                       const bg = busy ? 'bg-red-800' : 'bg-green-100';
                       const textColor = busy ? 'text-white' : 'text-green-800';
 
