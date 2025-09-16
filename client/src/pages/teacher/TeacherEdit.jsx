@@ -198,7 +198,8 @@ export default function TeacherEdit() {
                           )}
                           {!isBookingState && (
                             <div className="mt-2 flex items-center justify-center gap-2">
-                              {!isPermanentBusy && s.status === 'available' && (
+                              {/* Set Limit for all non-permanent slots */}
+                              {!isPermanentBusy && (
                                 <button 
                                   className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
                                   onClick={() => setLimit(s)}
@@ -206,12 +207,21 @@ export default function TeacherEdit() {
                                   Set Limit
                                 </button>
                               )}
-                              {!isPermanentBusy && !isBusy && (
+                              {/* Mark Busy/Available for all non-permanent slots */}
+                              {!isPermanentBusy && s.status === 'available' && (
                                 <button 
                                   className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
                                   onClick={() => toggleAvailability(s)}
                                 >
                                   Mark Busy
+                                </button>
+                              )}
+                              {!isPermanentBusy && s.status === 'occupied' && (
+                                <button 
+                                  className="px-3 py-1 text-xs bg-white text-green-600 rounded-md transition-colors duration-200 hover:bg-green-100 font-medium"
+                                  onClick={() => toggleAvailability(s)}
+                                >
+                                  Mark Available
                                 </button>
                               )}
                             </div>

@@ -6,26 +6,26 @@ import Papa from 'papaparse';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import path from 'path';
-  
+
 export async function downloadBookingsCsv(req, res) {
-  
   if (!req.user || !req.user.email) {
     return res.status(401).json({ message: 'Unauthorized: missing user context' });
   }
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  
+
   const bookings = await Booking.find({ teacherId: teacher.teacherId });
-  
+
   const userIds = bookings.map(b => b.studentUserId).filter(Boolean);
   const users = await User.find({ _id: { $in: userIds } });
   const userMap = new Map(users.map(u => [String(u._id), u]));
-  
+
   const slotMap = new Map((teacher.timetable || []).map(s => [String(s._id), s]));
-  
-  // A
+
+  // Also fetch Student records for correct studentId
   const students = await Student.find({ email: { $in: users.map(u => u.email) } });
   const studentMap = new Map(students.map(s => [s.email, s]));
+
   const rows = bookings.map(b => {
     const user = userMap.get(String(b.studentUserId)) || {};
     const student = studentMap.get(user.email) || {};
@@ -48,23 +48,35 @@ export async function downloadBookingsCsv(req, res) {
   res.setHeader('Content-Disposition', 'attachment; filename="bookings-history.csv"');
   res.send(csv);
 }
-  
+
 export async function uploadStudentsCsv(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  
-  let fileName = req.file.filename;
-  let filePath = path.resolve(process.cwd(), '..', 'uploads', fileName);
+
+  let filePath = req.file.path;
   let csvText;
   try {
     csvText = fs.readFileSync(filePath, 'utf8');
   } catch (e) {
+    console.error('Failed to read uploaded file:', filePath, e);
+    // Clean up uploaded file if it exists
+    if (filePath) {
+      fs.unlink(filePath, (err) => {
+        if (err) console.error('Failed to delete uploaded file:', filePath, err);
+      });
+    }
     return res.status(500).json({ message: 'Failed to read uploaded file', error: e.message });
   }
-  
+
   const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   if (!parsed.data || !Array.isArray(parsed.data) || parsed.data.length === 0) {
+    // Clean up uploaded file
+    if (filePath) {
+      fs.unlink(filePath, (err) => {
+        if (err) console.error('Failed to delete uploaded file:', filePath, err);
+      });
+    }
     return res.status(400).json({ message: 'CSV is empty or invalid' });
   }
   let added = 0, updated = 0, errors = [];
@@ -116,7 +128,11 @@ export async function uploadStudentsCsv(req, res) {
     }
   }
   // Clean up uploaded file
-  fs.unlink(filePath, () => {});
+  if (filePath) {
+    fs.unlink(filePath, (err) => {
+      if (err) console.error('Failed to delete uploaded file:', filePath, err);
+      });
+  }
   res.json({ message: `Processed CSV: ${added} added, ${updated} updated, ${errors.length} errors`, errors });
 }
 
@@ -209,7 +225,7 @@ export async function upsertSlots(req, res) {
       existing.status = s.status ?? existing.status;
       existing.maxBookings = s.maxBookings ?? existing.maxBookings;
     } else {
-  teacher.timetable.push({ day: s.day, start: s.start, end: s.end, status: s.status || 'occupied', maxBookings: s.maxBookings || 5 });
+      teacher.timetable.push({ day: s.day, start: s.start, end: s.end, status: s.status || 'occupied', maxBookings: s.maxBookings || 5 });
     }
   }
   await teacher.save();
