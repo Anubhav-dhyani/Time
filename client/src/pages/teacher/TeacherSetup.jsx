@@ -15,11 +15,8 @@ export default function TeacherSetup() {
     (async () => {
       try {
         const { data } = await api.get('/teacher/timetable/setup');
-        // Set all slots to 'occupied' by default
-        const normalized = (data.timetable || []).map(s => ({
-          ...s,
-          status: 'occupied' // Default all slots to occupied
-        }));
+        // Use initiallyBusy from API; setup defines permanent busy flags only
+        const normalized = (data.timetable || []).map(s => ({ ...s }));
         setSlots(normalized);
       } catch (e) {
         console.error('Load error:', e);
@@ -33,20 +30,14 @@ export default function TeacherSetup() {
   const key = (s) => `${s.day}|${s.start}|${s.end}`;
 
   const toggleBusy = (s) => {
-    setSlots((prev) =>
-      prev.map((x) =>
-        x._id === s._id
-          ? { ...x, status: x.status === 'available' ? 'occupied' : 'available' }
-          : x
-      )
-    );
+    setSlots((prev) => prev.map((x) => (x._id === s._id ? { ...x, initiallyBusy: !Boolean(x.initiallyBusy) } : x)));
   };
 
   const save = async () => {
     setSaving(true);
     setError('');
     try {
-      const busyKeys = slots.filter((s) => s.status === 'occupied').map(key);
+      const busyKeys = slots.filter((s) => Boolean(s.initiallyBusy)).map(key);
       await api.post('/teacher/timetable/setup', { busyKeys });
       navigate('/teacher');
     } catch (e) {
@@ -79,8 +70,8 @@ export default function TeacherSetup() {
     return hours * 60 + minutes;
   };
 
-  // Set all slots to 'occupied' by default
-  const normalizedSlots = slots.map(s => ({ ...s, status: s.status === 'available' ? 'available' : 'occupied' }));
+  // In setup, display dark red for permanently busy, light red otherwise
+  const normalizedSlots = slots.map(s => ({ ...s }));
   const times = Array.from(new Set(normalizedSlots.map((s) => `${s.start}-${s.end}`)))
     .map(t => ({ t, minutes: timeToMinutes(t) }))
     .sort((a, b) => a.minutes - b.minutes)
@@ -167,9 +158,9 @@ export default function TeacherSetup() {
                       );
                     }
 
-                    const busy = s.status !== 'available';
-                    const bg = busy ? 'bg-red-800' : 'bg-green-100';
-                    const textColor = busy ? 'text-white' : 'text-green-800';
+                    const busy = Boolean(s.initiallyBusy);
+                    const bg = busy ? 'bg-red-800' : 'bg-red-100';
+                    const textColor = busy ? 'text-white' : 'text-red-800';
 
                     return (
                       <td key={d} className="p-4 border-b border-gray-200">
@@ -178,13 +169,13 @@ export default function TeacherSetup() {
                           onClick={() => toggleBusy(s)}
                         >
                           <span className={`text-sm font-medium ${textColor}`}>
-                            {busy ? 'Busy' : 'Available'}
+                            {busy ? 'Busy (Permanent)' : 'Not Busy'}
                           </span>
                           <button
-                            className={`mt-2 px-3 py-1 text-xs bg-white rounded-md transition-colors duration-200 font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-green-700 hover:bg-green-100'}`}
+                            className={`mt-2 px-3 py-1 text-xs bg-white rounded-md transition-colors duration-200 font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-red-700 hover:bg-red-100'}`}
                             onClick={(e) => { e.stopPropagation(); toggleBusy(s); }}
                           >
-                            {busy ? 'Mark Available' : 'Mark Busy'}
+                            {busy ? 'Mark Not Busy' : 'Mark Busy'}
                           </button>
                         </div>
                       </td>
@@ -209,23 +200,23 @@ export default function TeacherSetup() {
                     .filter(s => s.day === d)
                     .sort((a, b) => timeToMinutes(`${a.start}-${a.end}`) - timeToMinutes(`${b.start}-${b.end}`))
                     .map((s) => {
-                      const busy = s.status !== 'available';
-                      const bg = busy ? 'bg-red-800' : 'bg-green-100';
-                      const textColor = busy ? 'text-white' : 'text-green-800';
+                      const busy = Boolean(s.initiallyBusy);
+                      const bg = busy ? 'bg-red-800' : 'bg-red-100';
+                      const textColor = busy ? 'text-white' : 'text-red-800';
 
                       return (
                         <div key={s._id} className={`${bg} rounded-lg p-4 shadow-sm`}>
                           <div className="flex justify-between items-center">
                             <span className="font-medium text-gray-900">{s.start} - {s.end}</span>
                             <span className={`text-xs font-medium ${textColor}`}>
-                              {busy ? 'Busy' : 'Available'}
+                              {busy ? 'Busy (Permanent)' : 'Not Busy'}
                             </span>
                           </div>
                           <button
-                            className={`w-full mt-2 px-3 py-2 text-xs bg-white rounded-md transition-colors duration-200 font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-green-700 hover:bg-green-100'}`}
+                            className={`w-full mt-2 px-3 py-2 text-xs bg-white rounded-md transition-colors duration-200 font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-red-700 hover:bg-red-100'}`}
                             onClick={() => toggleBusy(s)}
                           >
-                            {busy ? 'Mark as Available' : 'Mark as Busy'}
+                            {busy ? 'Mark Not Busy' : 'Mark Busy'}
                           </button>
                         </div>
                       );

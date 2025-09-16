@@ -168,7 +168,7 @@ export async function resetPastSlotsForTeacher(teacher) {
         await Booking.updateMany({ teacherId: teacher.teacherId, slotId: s._id, status: 'booked' }, { $set: { status: 'expired' } });
         s.currentBookings = 0;
         // Reset to available unless teacher marked this slot busy initially
-        s.status = s.initiallyBusy ? 'available' : 'occupied';
+        s.status = s.initiallyBusy ? 'occupied' : 'available';
         changed = true;
       }
     }
@@ -223,7 +223,9 @@ export async function setSlotStatus(req, res) {
   const slot = teacher.timetable.id(slotId);
   if (!slot) return res.status(404).json({ message: 'Slot not found' });
   if (status) {
-    return res.status(403).json({ message: 'Busy/free status cannot be changed here' });
+    if (slot.initiallyBusy) return res.status(400).json({ message: 'Cannot change status of a permanently busy slot' });
+    if (!['available', 'occupied'].includes(status)) return res.status(400).json({ message: 'Invalid status' });
+    slot.status = status;
   }
   if (typeof maxBookings === 'number') {
     if (slot.initiallyBusy) return res.status(400).json({ message: 'Cannot set limit on an initially busy slot' });
@@ -262,7 +264,7 @@ export async function getSetupTimetable(req, res) {
   }
   await resetPastSlotsForTeacher(teacher);
   res.json({
-    timetable: teacher.timetable.map((s) => ({ ...s.toObject(), initiallyBusy: s.status === 'occupied' })),
+    timetable: teacher.timetable.map((s) => ({ ...s.toObject(), initiallyBusy: Boolean(s.initiallyBusy) })),
     mustSetup: teacher.mustSetupTimetable
   });
 }
@@ -276,9 +278,9 @@ export async function saveSetupTimetable(req, res) {
   const setBusy = new Set(busyKeys || []);
   teacher.timetable.forEach((s) => {
     const busy = setBusy.has(toKey(s));
-    s.status = busy ? 'occupied' : 'available';
-    // mark initiallyBusy for reference
+    // Setup defines permanent busy flags; status remains occupied by default
     s.initiallyBusy = busy;
+    s.status = 'occupied';
   });
   teacher.mustSetupTimetable = false;
   await teacher.save();

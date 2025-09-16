@@ -214,7 +214,7 @@ export default function TeacherDashboard() {
               </button>
             </div>
 
-            <Timetable slots={timetable} canBook={false} />
+            <Timetable slots={timetable} canBook={false} teacherView={true} />
           </div>
         )}
 

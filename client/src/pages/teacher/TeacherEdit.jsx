@@ -35,6 +35,16 @@ export default function TeacherEdit() {
     await load();
   };
 
+  const toggleAvailability = async (s) => {
+    if (s.initiallyBusy) {
+      alert('This slot is permanently busy and cannot be changed here.');
+      return;
+    }
+    const next = s.status === 'available' ? 'occupied' : 'available';
+    await api.post('/teacher/timetable/slot', { slotId: s._id, status: next });
+    await load();
+  };
+
   const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const times = Array.from(new Set(slots.map((s) => `${s.start}-${s.end}`))).sort();
   
@@ -159,14 +169,24 @@ export default function TeacherEdit() {
                           <div className="mt-1 text-xs">
                             {s.currentBookings}/{s.maxBookings} bookings
                           </div>
-                          {s.status === 'available' && (
-                            <button 
-                              className="mt-2 px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
-                              onClick={() => setLimit(s)}
-                            >
-                              Set Limit
-                            </button>
-                          )}
+                          <div className="mt-2 flex items-center justify-center gap-2">
+                            {!s.initiallyBusy && (
+                              <button 
+                                className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
+                                onClick={() => toggleAvailability(s)}
+                              >
+                                {s.status === 'available' ? 'Mark Busy' : 'Mark Available'}
+                              </button>
+                            )}
+                            {s.status === 'available' && (
+                              <button 
+                                className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
+                                onClick={() => setLimit(s)}
+                              >
+                                Set Limit
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     );
