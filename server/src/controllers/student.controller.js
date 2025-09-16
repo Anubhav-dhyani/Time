@@ -32,7 +32,7 @@ function isSlotInPast(slot){
   return timeLTE(slot.end, now);
 }
 
-// Default grid (same as teacher controller)
+// 
 const DEFAULT_TIMES = [
   ['08:00', '08:55'],
   ['08:55', '09:50'],

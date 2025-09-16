@@ -23,7 +23,7 @@ export async function downloadBookingsCsv(req, res) {
   
   const slotMap = new Map((teacher.timetable || []).map(s => [String(s._id), s]));
   
-  // Also fetch Student records for correct studentId
+  // A
   const students = await Student.find({ email: { $in: users.map(u => u.email) } });
   const studentMap = new Map(students.map(s => [s.email, s]));
   const rows = bookings.map(b => {
