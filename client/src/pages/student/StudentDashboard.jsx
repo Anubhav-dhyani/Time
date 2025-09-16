@@ -131,6 +131,21 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
+      {/* Assigned Teachers Section */}
+      <div className="max-w-3xl mx-auto mt-8 mb-6 bg-white rounded-xl shadow-md p-5 border border-blue-200">
+        <h2 className="text-lg font-semibold text-blue-900 mb-2">Assigned Teachers</h2>
+        {teachers.length === 0 ? (
+          <p className="text-gray-600">No teachers assigned.</p>
+        ) : (
+          <ul>
+            {teachers.map(t => (
+              <li key={t.teacherId} className="mb-2">
+                <span className="font-medium">{t.name}</span> (<span className="text-gray-600">{t.email}</span>)
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <header className="bg-white shadow-sm border-b border-blue-100">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">

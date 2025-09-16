@@ -40,6 +40,9 @@ export default function TeacherDashboard() {
     }
   };
 
+  // CSV download error state
+  const [csvDownloadError, setCsvDownloadError] = useState('');
+
   const load = async () => {
     try {
       const { data } = await api.get('/teacher/timetable');
@@ -231,8 +234,16 @@ export default function TeacherDashboard() {
                 </button>
                 <button
                   onClick={async () => {
+                    setCsvDownloadError('');
                     try {
                       const res = await api.get('/teacher/bookings-csv', { responseType: 'blob' });
+                      // Check for error response masquerading as blob
+                      if (res.data && res.data.type && res.data.type !== 'text/csv') {
+                        // Try to read error message from blob
+                        const text = await res.data.text();
+                        setCsvDownloadError(text || 'Failed to download CSV');
+                        return;
+                      }
                       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
                       const link = document.createElement('a');
                       link.href = url;
@@ -241,7 +252,19 @@ export default function TeacherDashboard() {
                       link.click();
                       link.remove();
                     } catch (e) {
-                      alert('Failed to download CSV');
+                      let msg = 'Failed to download CSV';
+                      if (e.response && e.response.data) {
+                        if (e.response.data instanceof Blob) {
+                          try {
+                            msg = await e.response.data.text();
+                          } catch {}
+                        } else if (typeof e.response.data === 'string') {
+                          msg = e.response.data;
+                        } else if (e.response.data.message) {
+                          msg = e.response.data.message;
+                        }
+                      }
+                      setCsvDownloadError(msg);
                     }
                   }}
                   className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm border border-red-200 rounded px-2 py-1"
@@ -252,6 +275,9 @@ export default function TeacherDashboard() {
                   </svg>
                   Download CSV
                 </button>
+                {csvDownloadError && (
+                  <span className="ml-2 text-sm text-red-600">{csvDownloadError}</span>
+                )}
               </div>
             </div>
 

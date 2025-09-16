@@ -1,3 +1,17 @@
+// Get assigned teachers for logged-in student
+export async function getMyTeachers(req, res) {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const student = await Student.findOne({ email: user.email });
+    if (!student) return res.status(404).json({ message: 'Student record not found' });
+    const teacherIds = (student.teacherIds || []).filter(Boolean);
+    const teachers = await Teacher.find({ teacherId: { $in: teacherIds } }).select('teacherId name email');
+    res.json({ teachers });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to fetch teachers', error: e.message });
+  }
+}
 import { User } from '../models/User.js';
 import { Teacher } from '../models/Teacher.js';
 import { Booking } from '../models/Booking.js';
@@ -56,7 +70,7 @@ export async function getAssignedTimetable(req, res) {
       if (!t.timetable || t.timetable.length === 0) {
         for (const day of DAYS) {
           for (const [start, end] of DEFAULT_TIMES) {
-            t.timetable.push({ day, start, end, status: 'available', maxBookings: 1 });
+            t.timetable.push({ day, start, end, status: 'occupied', maxBookings: 5 });
           }
         }
         await t.save();

@@ -21,7 +21,11 @@ export default function StudentLogin() {
     try {
       const user = await login(email, password, 'student');
       if (user.role !== 'student') throw new Error('Wrong portal');
-      navigate('/student');
+      if (user.mustChangePassword) {
+        navigate('/change-password');
+      } else {
+        navigate('/student');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {

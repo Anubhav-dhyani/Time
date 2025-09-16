@@ -1,29 +1,39 @@
-
 import { Teacher } from '../models/Teacher.js';
 import { Booking } from '../models/Booking.js';
-import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
+import { User } from '../models/User.js';
 import Papa from 'papaparse';
-// Download all bookings for the week as CSV
+import fs from 'fs';
+import bcrypt from 'bcryptjs';
+import path from 'path';
+  
 export async function downloadBookingsCsv(req, res) {
+  
+  if (!req.user || !req.user.email) {
+    return res.status(401).json({ message: 'Unauthorized: missing user context' });
+  }
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  // Find all bookings for this teacher for the current week (all statuses)
+  
   const bookings = await Booking.find({ teacherId: teacher.teacherId });
-  // Get all students referenced
-  const studentIds = bookings.map(b => b.studentUserId).filter(Boolean);
-  const students = await Student.find({ _id: { $in: studentIds } });
-  const studentMap = new Map(students.map(s => [String(s._id), s]));
-  // Map slotId to slot details
+  
+  const userIds = bookings.map(b => b.studentUserId).filter(Boolean);
+  const users = await User.find({ _id: { $in: userIds } });
+  const userMap = new Map(users.map(u => [String(u._id), u]));
+  
   const slotMap = new Map((teacher.timetable || []).map(s => [String(s._id), s]));
-  // Compose CSV rows
+  
+  // Also fetch Student records for correct studentId
+  const students = await Student.find({ email: { $in: users.map(u => u.email) } });
+  const studentMap = new Map(students.map(s => [s.email, s]));
   const rows = bookings.map(b => {
-    const student = studentMap.get(String(b.studentUserId)) || {};
+    const user = userMap.get(String(b.studentUserId)) || {};
+    const student = studentMap.get(user.email) || {};
     const slot = slotMap.get(String(b.slotId)) || {};
     return {
       bookingId: b._id,
-      studentName: student.name || '',
-      studentEmail: student.email || '',
+      studentName: user.name || '',
+      studentEmail: user.email || '',
       studentId: student.studentId || '',
       day: slot.day || '',
       start: slot.start || '',
@@ -38,22 +48,21 @@ export async function downloadBookingsCsv(req, res) {
   res.setHeader('Content-Disposition', 'attachment; filename="bookings-history.csv"');
   res.send(csv);
 }
-import { Student } from '../models/Student.js';
-import fs from 'fs';
-import Papa from 'papaparse';
-// CSV upload: assign students to teacher
+  
 export async function uploadStudentsCsv(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  const filePath = req.file.path;
+  
+  let fileName = req.file.filename;
+  let filePath = path.resolve(process.cwd(), '..', 'uploads', fileName);
   let csvText;
   try {
     csvText = fs.readFileSync(filePath, 'utf8');
   } catch (e) {
-    return res.status(500).json({ message: 'Failed to read uploaded file' });
+    return res.status(500).json({ message: 'Failed to read uploaded file', error: e.message });
   }
-  // Parse CSV: expect columns like name,email,studentId (header row required)
+  
   const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   if (!parsed.data || !Array.isArray(parsed.data) || parsed.data.length === 0) {
     return res.status(400).json({ message: 'CSV is empty or invalid' });
@@ -63,13 +72,13 @@ export async function uploadStudentsCsv(req, res) {
     const name = row.name?.trim();
     const email = row.email?.trim();
     const studentId = row.studentId?.trim();
-    if (!name || !email || !studentId) {
+    const password = row.password?.trim();
+    if (!name || !email || !studentId || !password) {
       errors.push(`Missing fields in row: ${JSON.stringify(row)}`);
       continue;
     }
     let student = await Student.findOne({ studentId });
     if (!student) {
-      // Create new student
       try {
         student = await Student.create({ name, email, studentId, teacherIds: [teacher.teacherId] });
         added++;
@@ -78,12 +87,32 @@ export async function uploadStudentsCsv(req, res) {
         continue;
       }
     } else {
-      // Update teacherIds if not present
       if (!student.teacherIds.includes(teacher.teacherId)) {
         student.teacherIds.push(teacher.teacherId);
         await student.save();
         updated++;
       }
+    }
+    let user = await User.findOne({ email });
+    if (!user) {
+      try {
+        const passwordHash = await bcrypt.hash(password, 10);
+        user = await User.create({
+          role: 'student',
+          name,
+          email,
+          passwordHash,
+          studentId,
+          mustChangePassword: true
+        });
+      } catch (e) {
+        errors.push(`Failed to create User for student ${studentId}: ${e.message}`);
+      }
+    } else {
+      let changed = false;
+      if (user.name !== name) { user.name = name; changed = true; }
+      if (user.studentId !== studentId) { user.studentId = studentId; changed = true; }
+      if (changed) await user.save();
     }
   }
   // Clean up uploaded file
@@ -153,7 +182,7 @@ export async function getMyTimetable(req, res) {
   if (!teacher.timetable || teacher.timetable.length === 0) {
     for (const day of DAYS) {
       for (const [start, end] of DEFAULT_TIMES) {
-  teacher.timetable.push({ day, start, end, status: 'occupied', maxBookings: 5 });
+        teacher.timetable.push({ day, start, end, status: 'occupied', maxBookings: 5 });
       }
     }
     await teacher.save();

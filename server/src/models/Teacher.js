@@ -6,9 +6,9 @@ const slotSchema = new mongoose.Schema(
     start: { type: String, required: true }, // e.g., "08:00"
     end: { type: String, required: true },
     status: { type: String, enum: ['available', 'occupied'], default: 'occupied' },
-    maxBookings: { type: Number, default: 1 },
+    maxBookings: { type: Number, default: 5 },
     currentBookings: { type: Number, default: 0 },
-  initiallyBusy: { type: Boolean, default: false },
+    initiallyBusy: { type: Boolean, default: false },
   },
   { _id: true }
 );
@@ -28,8 +28,11 @@ const teacherSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     timetable: [slotSchema],
-  dailyNotes: [dayNoteSchema],
-  mustSetupTimetable: { type: Boolean, default: true },
+    dailyNotes: [dayNoteSchema],
+    mustSetupTimetable: { type: Boolean, default: true },
+    setupAt: { type: Date },
+    bookingWindowUntil: { type: Date },
+    lastResetWeekStart: { type: Date },
   },
   { timestamps: true }
 );
