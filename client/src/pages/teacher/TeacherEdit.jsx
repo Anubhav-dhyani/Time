@@ -23,7 +23,7 @@ export default function TeacherEdit() {
       setError(e.response?.data?.message || 'Failed to load timetable');
     }
   };
-  
+  //jhccyts
   useEffect(() => { load(); }, []);
 
   const setLimit = async (s) => {

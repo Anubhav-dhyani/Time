@@ -21,6 +21,7 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
     const dt = new Date();
     return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
   };
+  //hfygcyc
   const timeLTE = (a,b) => String(a || '').localeCompare(String(b || '')) <= 0;
   const defaultIsPast = (slot) => {
     const si = dayToIndex(slot.day);
