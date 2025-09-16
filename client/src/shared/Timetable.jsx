@@ -77,9 +77,15 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
                   const past = isPast(slot);
                   const effectivePast = (teacherView && slot.initiallyBusy) ? false : past;
                   if (effectivePast) {
-                    bgColor = 'bg-red-100';
-                    textColor = 'text-red-800';
-                    statusText = 'Unavailable';
+                    if (teacherView && !slot.initiallyBusy) {
+                      bgColor = 'bg-orange-100';
+                      textColor = 'text-orange-800';
+                      statusText = 'Booking';
+                    } else {
+                      bgColor = 'bg-red-100';
+                      textColor = 'text-red-800';
+                      statusText = 'Unavailable';
+                    }
                   } else if (slot.status === 'occupied') {
                     if (teacherView && !slot.initiallyBusy) {
                       bgColor = 'bg-red-100';
@@ -102,7 +108,7 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
                         <span className={`text-sm font-medium ${textColor}`}>
                           {statusText}
                         </span>
-                        {slot.status === 'available' && (
+                        {(statusText === 'Available' || statusText === 'Booking') && (
                           <div className="mt-1 text-xs text-gray-600">
                             {slot.currentBookings}/{slot.maxBookings} bookings
                           </div>
@@ -138,9 +144,15 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
                 const past = isPast(slot);
                 const effectivePast = (teacherView && slot.initiallyBusy) ? false : past;
                 if (effectivePast) {
-                  bgColor = 'bg-red-100';
-                  textColor = 'text-red-800';
-                  statusText = 'Unavailable';
+                  if (teacherView && !slot.initiallyBusy) {
+                    bgColor = 'bg-orange-100';
+                    textColor = 'text-orange-800';
+                    statusText = 'Booking';
+                  } else {
+                    bgColor = 'bg-red-100';
+                    textColor = 'text-red-800';
+                    statusText = 'Unavailable';
+                  }
                 } else if (slot.status === 'occupied') {
                   if (teacherView && !slot.initiallyBusy) {
                     bgColor = 'bg-red-100';
@@ -167,7 +179,7 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
                         {statusText}
                       </span>
                     </div>
-                    {slot.status === 'available' && (
+                    {(statusText === 'Available' || statusText === 'Booking') && (
                       <div className="mt-1 text-xs text-gray-600">
                         {slot.currentBookings}/{slot.maxBookings} bookings
                       </div>
