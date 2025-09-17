@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +15,6 @@ export default function TeacherDashboard() {
   const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   // CSV upload state
-  //jkhvkgcc
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvUploadMsg, setCsvUploadMsg] = useState('');
 
@@ -58,61 +56,73 @@ export default function TeacherDashboard() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => { if (mustSetup) nav('/teacher/setup'); }, [mustSetup]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <header className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden mr-3 text-red-700 focus:outline-none"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="hidden md:flex items-center space-x-3">
+    <div className="min-h-screen bg-gray-50">
+      {/* Professional Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
               <button
-                onClick={() => nav('/teacher/setup')}
-                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden mr-3 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
               >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                Setup Timetable
               </button>
-              <button
-                onClick={() => nav('/change-password')}
-                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Password
-              </button>
-              <button
-                onClick={() => nav('/teacher/edit')}
-                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Timetable
-              </button>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg mr-3 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h1 className="text-xl font-semibold text-gray-900">Teacher Portal</h1>
+              </div>
             </div>
-            <div className="relative">
+
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-1">
+                <button
+                  onClick={() => nav('/teacher/setup')}
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Setup
+                </button>
+                <button
+                  onClick={() => nav('/change-password')}
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Password
+                </button>
+                <button
+                  onClick={() => nav('/teacher/edit')}
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </button>
+              </div>
               <button
                 onClick={logout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 Logout
@@ -121,274 +131,360 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200 px-4 py-3">
-            <button
-              onClick={() => { nav('/teacher/setup'); setIsMenuOpen(false); }}
-              className="w-full text-left py-2 text-red-600 flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Setup Timetable
-            </button>
-            <button
-              onClick={() => { nav('/change-password'); setIsMenuOpen(false); }}
-              className="w-full text-left py-2 text-red-600 flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Change Password
-            </button>
-            <button
-              onClick={() => { nav('/teacher/edit'); setIsMenuOpen(false); }}
-              className="w-full text-left py-2 text-red-600 flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Timetable
-            </button>
+          <div className="md:hidden border-t border-gray-200 bg-white">
+            <div className="px-4 py-3 space-y-2">
+              <button
+                onClick={() => { nav('/teacher/setup'); setIsMenuOpen(false); }}
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+              >
+                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Setup Timetable
+              </button>
+              <button
+                onClick={() => { nav('/change-password'); setIsMenuOpen(false); }}
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+              >
+                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Change Password
+              </button>
+              <button
+                onClick={() => { nav('/teacher/edit'); setIsMenuOpen(false); }}
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+              >
+                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Timetable
+              </button>
+            </div>
           </div>
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 md:p-6">
-        <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-gray-200 transition-all duration-300 hover:shadow-lg">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Card */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-100">
           <div className="flex items-center">
-            <div className="bg-red-100 p-3 rounded-lg mr-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div className="bg-blue-100 p-3 rounded-xl mr-4">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Welcome, {user?.name || 'Teacher'}!</h2>
-              <p className="text-gray-600 text-sm">Manage your timetable and view student bookings</p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Welcome back, {user?.name || 'Teacher'}!</h2>
+              <p className="text-gray-600">Manage your schedule and track student appointments</p>
             </div>
           </div>
         </div>
 
-        {/* CSV Upload UI */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6 border border-gray-200 flex flex-col md:flex-row items-center gap-4">
-          <label className="font-medium text-gray-700">Upload Students CSV:</label>
-          <input type="file" accept=".csv" onChange={handleCsvUpload} disabled={csvUploading} className="block" />
-          {csvUploading && <span className="text-red-600 ml-2">Uploading...</span>}
-          {csvUploadMsg && <span className="ml-2 text-sm text-gray-600">{csvUploadMsg}</span>}
-        </div>
-      </div>
-
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            className={`py-3 px-6 font-medium text-sm ${activeTab === 'timetable' ? 'text-white bg-red-800 border-b-2 border-red-900' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
-            onClick={() => setActiveTab('timetable')}
-          >
-            Timetable
-          </button>
-          <button
-            className={`py-3 px-6 font-medium text-sm ${activeTab === 'bookings' ? 'text-white bg-red-800 border-b-2 border-red-900' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
-            onClick={() => setActiveTab('bookings')}
-          >
-            Bookings ({bookings.length})
-          </button>
-          <button
-            className={`py-3 px-6 font-medium text-sm ${activeTab === 'notes' ? 'text-white bg-red-800 border-b-2 border-red-900' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
-            onClick={() => setActiveTab('notes')}
-          >
-            Daily Notes
-          </button>
+        {/* CSV Upload Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Student Management</h3>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Upload Students CSV:</label>
+            <div className="flex-1 flex items-center gap-3">
+              <input 
+                type="file" 
+                accept=".csv" 
+                onChange={handleCsvUpload} 
+                disabled={csvUploading} 
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {csvUploading && <span className="text-blue-600 text-sm animate-pulse">Uploading...</span>}
+            </div>
+          </div>
+          {csvUploadMsg && (
+            <div className={`mt-3 text-sm p-3 rounded-md ${csvUploadMsg.includes('successful') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {csvUploadMsg}
+            </div>
+          )}
         </div>
 
-        {activeTab === 'timetable' && (
-          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 mb-6">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-semibold text-gray-900">Your Timetable</h2>
+        {/* Navigation Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex">
               <button
-                onClick={load}
-                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'timetable' 
+                    ? 'border-blue-500 text-blue-600 bg-blue-50' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('timetable')}
               >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-            </div>
-
-            <Timetable slots={timetable} canBook={false} teacherView={true} />
-          </div>
-        )}
-
-        {activeTab === 'bookings' && (
-          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-semibold text-gray-900">Student Bookings</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={load}
-                  className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Refresh
-                </button>
-                <button
-                  onClick={async () => {
-                    setCsvDownloadError('');
-                    try {
-                      const res = await api.get('/teacher/bookings-csv', { responseType: 'blob' });
-                      // Check for error response masquerading as blob
-                      if (res.data && res.data.type && res.data.type !== 'text/csv') {
-                        // Try to read error message from blob
-                        const text = await res.data.text();
-                        setCsvDownloadError(text || 'Failed to download CSV');
-                        return;
-                      }
-                      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.setAttribute('download', 'bookings-history.csv');
-                      document.body.appendChild(link);
-                      link.click();
-                      link.remove();
-                    } catch (e) {
-                      let msg = 'Failed to download CSV';
-                      if (e.response && e.response.data) {
-                        if (e.response.data instanceof Blob) {
-                          try {
-                            msg = await e.response.data.text();
-                          } catch {}
-                        } else if (typeof e.response.data === 'string') {
-                          msg = e.response.data;
-                        } else if (e.response.data.message) {
-                          msg = e.response.data.message;
-                        }
-                      }
-                      setCsvDownloadError(msg);
-                    }
-                  }}
-                  className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm border border-red-200 rounded px-2 py-1"
-                  title="Download all bookings as CSV"
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Download CSV
-                </button>
-                {csvDownloadError && (
-                  <span className="ml-2 text-sm text-red-600">{csvDownloadError}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="overflow-auto rounded-lg border border-gray-200">
-              {bookings.length > 0 ? (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Student</th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Email</th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Slot</th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {bookings.map((b) => {
-                      const slot = timetable.find((s) => s._id === b.slotId);
-                      return (
-                        <tr key={b._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{b.student?.name || '-'}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{b.student?.email || '-'}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {slot ? `${slot.day} ${slot.start}-${slot.end}` : b.slotId}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${b.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                              {b.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="text-center py-8">
-                  <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <p className="mt-2 text-sm text-gray-500">No bookings yet</p>
+                  Timetable
                 </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'notes' && (
-          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-semibold text-gray-900">Daily Notes</h2>
-              <button
-                onClick={async () => {
-                  try {
-                    await api.post('/teacher/daily-notes', { notes });
-                    const n = await api.get('/teacher/daily-notes');
-                    setNotes(n.data.notes || []);
-                  } catch (e) {
-                    console.error('Failed saving notes', e);
-                  }
-                }}
-                className="text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center text-sm"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Save
               </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {DAYS.map((d) => {
-                const idx = (notes || []).findIndex((n) => n.day === d);
-                const note = idx >= 0 ? notes[idx] : { day: d, venue: '', description: '' };
-                return (
-                  <div key={d} className="border rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-800 mb-2">{d}</h3>
-                    <label className="block text-sm text-gray-700 mb-1">Venue</label>
-                    <input
-                      className="w-full border border-gray-300 rounded-md p-2 mb-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      value={note.venue}
-                      onChange={(e) => {
-                        const updated = [...(notes || [])];
-                        if (idx >= 0) updated[idx] = { ...note, venue: e.target.value };
-                        else updated.push({ ...note, venue: e.target.value });
-                        setNotes(updated);
-                      }}
-                      placeholder="e.g., Room 210"
-                    />
-                    <label className="block text-sm text-gray-700 mb-1">Description</label>
-                    <textarea
-                      className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      value={note.description}
-                      onChange={(e) => {
-                        const updated = [...(notes || [])];
-                        if (idx >= 0) updated[idx] = { ...note, description: e.target.value };
-                        else updated.push({ ...note, description: e.target.value });
-                        setNotes(updated);
-                      }}
-                      placeholder="Short note for students"
-                    />
-                  </div>
-                );
-              })}
-            </div>
+              <button
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'bookings' 
+                    ? 'border-blue-500 text-blue-600 bg-blue-50' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('bookings')}
+              >
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0m3 0H9m1.5-9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                  </svg>
+                  Bookings
+                  {bookings.length > 0 && (
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {bookings.length}
+                    </span>
+                  )}
+                </div>
+              </button>
+              <button
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'notes' 
+                    ? 'border-blue-500 text-blue-600 bg-blue-50' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('notes')}
+              >
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Daily Notes
+                </div>
+              </button>
+            </nav>
           </div>
-        )}
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'timetable' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Your Schedule</h2>
+                  <button
+                    onClick={load}
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </button>
+                </div>
+                <Timetable slots={timetable} canBook={false} teacherView={true} />
+              </div>
+            )}
+
+            {activeTab === 'bookings' && (
+              <div>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Student Appointments</h2>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={load}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Refresh
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setCsvDownloadError('');
+                        try {
+                          const res = await api.get('/teacher/bookings-csv', { responseType: 'blob' });
+                          if (res.data && res.data.type && res.data.type !== 'text/csv') {
+                            const text = await res.data.text();
+                            setCsvDownloadError(text || 'Failed to download CSV');
+                            return;
+                          }
+                          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.setAttribute('download', 'bookings-history.csv');
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                        } catch (e) {
+                          let msg = 'Failed to download CSV';
+                          if (e.response && e.response.data) {
+                            if (e.response.data instanceof Blob) {
+                              try { msg = await e.response.data.text(); } catch {}
+                            } else if (typeof e.response.data === 'string') {
+                              msg = e.response.data;
+                            } else if (e.response.data.message) {
+                              msg = e.response.data.message;
+                            }
+                          }
+                          setCsvDownloadError(msg);
+                        }
+                      }}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                {csvDownloadError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                    {csvDownloadError}
+                  </div>
+                )}
+
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {bookings.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Slot</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {bookings.map((b) => {
+                            const slot = timetable.find((s) => s._id === b.slotId);
+                            return (
+                              <tr key={b._id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">{b.student?.name || '-'}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-600">{b.student?.email || '-'}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {slot ? `${slot.day} ${slot.start}-${slot.end}` : b.slotId}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                    b.status === 'confirmed' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {b.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No appointments yet</h3>
+                      <p className="mt-1 text-sm text-gray-500">Students haven't booked any slots yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'notes' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Daily Notes</h2>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post('/teacher/daily-notes', { notes });
+                        const n = await api.get('/teacher/daily-notes');
+                        setNotes(n.data.notes || []);
+                      } catch (e) {
+                        console.error('Failed saving notes', e);
+                      }
+                    }}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Notes
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {DAYS.map((d) => {
+                    const idx = (notes || []).findIndex((n) => n.day === d);
+                    const note = idx >= 0 ? notes[idx] : { day: d, venue: '', description: '' };
+                    return (
+                      <div key={d} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-4 flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          {d}
+                        </h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
+                            <input
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              value={note.venue}
+                              onChange={(e) => {
+                                const updated = [...(notes || [])];
+                                if (idx >= 0) updated[idx] = { ...note, venue: e.target.value };
+                                else updated.push({ ...note, venue: e.target.value });
+                                setNotes(updated);
+                              }}
+                              placeholder="e.g., Room 210, Lab 3, Main Hall"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              rows={3}
+                              value={note.description}
+                              onChange={(e) => {
+                                const updated = [...(notes || [])];
+                                if (idx >= 0) updated[idx] = { ...note, description: e.target.value };
+                                else updated.push({ ...note, description: e.target.value });
+                                setNotes(updated);
+                              }}
+                              placeholder="Additional notes for students..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
 
-      <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-gray-200 bg-white">
-        <p>Teacher Portal • {new Date().getFullYear()}</p>
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-500">
+              Teacher Portal • {new Date().getFullYear()} • 
+              <span className="ml-2 text-gray-400">Streamline your academic scheduling</span>
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );

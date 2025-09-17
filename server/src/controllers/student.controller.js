@@ -164,10 +164,10 @@ export async function bookSlot(req, res) {
     }
 
   await Booking.create({ studentUserId: me._id, teacherId, slotId, status: 'booked' });
-    slot.currentBookings += 1;
-    if (slot.currentBookings >= slot.maxBookings) slot.status = 'occupied';
-    await teacher.save();
-    res.json({ message: 'Booked', slot });
+  slot.currentBookings += 1;
+  teacher.markModified('timetable');
+  await teacher.save();
+  res.json({ message: 'Booked', slot });
   } catch (error) {
     console.error('Error in bookSlot:', error);
     res.status(500).json({ error: 'Failed to book slot' });

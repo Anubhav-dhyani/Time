@@ -23,8 +23,12 @@ export default function TeacherEdit() {
       setError(e.response?.data?.message || 'Failed to load timetable');
     }
   };
-  //jhccyts
-  useEffect(() => { load(); }, []);
+  
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const setLimit = async (s) => {
     const v = prompt('Max bookings for this slot', s.maxBookings);
@@ -67,49 +71,50 @@ export default function TeacherEdit() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+      {/* Professional Header */}
+      <header className="bg-white shadow-lg border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
           <div className="flex items-center">
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden mr-3 text-red-700 focus:outline-none"
+              className="md:hidden mr-4 text-red-700 focus:outline-none"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Edit Timetable</h1>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Timetable</h1>
+              <p className="text-gray-600 mt-1">Manage your schedule and booking limits</p>
+            </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => nav('/teacher')} 
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Dashboard
-            </button>
-          </div>
+          <button 
+            onClick={() => nav('/teacher')} 
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl transition-colors duration-300 flex items-center shadow-lg"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* Info Card */}
-        <div className="bg-white rounded-xl shadow-md p-5 mb-6 border border-gray-200">
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Enhanced Info Card */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
           <div className="flex items-start">
-            <div className="bg-red-100 p-2 rounded-lg mr-4">
-              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div className="bg-red-50 p-3 rounded-xl mr-5">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Edit Booking Limits</h2>
-              <p className="text-gray-600 text-sm">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Edit Booking Limits</h2>
+              <p className="text-gray-600">
                 Set limits on slots that were initially free. Busy/free status can only be set during the initial setup flow.
               </p>
             </div>
@@ -117,20 +122,20 @@ export default function TeacherEdit() {
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg mb-6">
             {error}
           </div>
         )}
 
         {/* Mobile Day Selector */}
         {isMobile && (
-          <div className="mb-4 md:hidden">
+          <div className="mb-6 md:hidden">
             <label htmlFor="day-select" className="block text-sm font-medium text-gray-700 mb-2">
               Select Day
             </label>
             <select
               id="day-select"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white shadow-sm"
               value={selectedDay || ''}
               onChange={(e) => setSelectedDay(e.target.value)}
             >
@@ -143,104 +148,106 @@ export default function TeacherEdit() {
         )}
 
         {/* Desktop Grid View */}
-        <div className={`bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-200 mb-6 ${isMobile ? 'hidden md:block' : 'block'}`}>
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="w-32 p-4 bg-gray-100 border-b-2 border-gray-300 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                  Time
-                </th>
-                {DAYS.map((d) => (
-                  <th key={d} className="p-4 bg-gray-100 border-b-2 border-gray-300 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    {d}
+        <div className={`bg-white rounded-2xl shadow-lg border border-gray-100 mb-8 overflow-hidden ${isMobile ? 'hidden md:block' : 'block'}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="w-32 p-4 bg-gray-50 border-b border-gray-200 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    Time
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {times.map((t) => (
-                <tr key={t} className="hover:bg-gray-50 transition-colors duration-150">
-                  <td className="p-4 border-b border-gray-200 text-sm font-medium text-gray-900 bg-gray-50">
-                    {t.replace('-', ' - ')}
-                  </td>
-                  {DAYS.map((d) => {
-                    const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
-                    if (!s) {
-                      return (
-                        <td key={d} className="p-4 border-b border-gray-200 bg-white"></td>
-                      );
-                    }
-
-                    const isPermanentBusy = Boolean(s.initiallyBusy);
-                    const isBusy = s.status === 'occupied';
-                    const past = isPastSlot(s);
-                    const isBookingState = past && !isPermanentBusy;
-                    const bg = isPermanentBusy
-                      ? 'bg-red-800'
-                      : (isBookingState ? 'bg-orange-100' : (isBusy ? 'bg-red-100' : 'bg-green-100'));
-                    const textColor = isPermanentBusy ? '' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
-
-                    return (
-                      <td key={d} className="p-4 border-b border-gray-200">
-                        <div className={`${bg} rounded-lg p-3 text-center shadow-sm ${isPermanentBusy ? 'text-white' : ''}`}>
-                          <span className={`text-sm font-medium ${textColor}`}>
-                            {isPermanentBusy ? 'Busy (Permanent)' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'))}
-                          </span>
-                          {(!isBusy || isBookingState) && (
-                            <div className="mt-1 text-xs">
-                              {s.currentBookings}/{s.maxBookings} bookings
-                            </div>
-                          )}
-                          {(isBusy && !isPermanentBusy) && (
-                            <div className="mt-1 text-xs text-red-800">
-                              Max Booking - {s.maxBookings}
-                            </div>
-                          )}
-                          {!isBookingState && (
-                            <div className="mt-2 flex items-center justify-center gap-2">
-                              {/* Set Limit for all non-permanent slots */}
-                              {!isPermanentBusy && (
-                                <button 
-                                  className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
-                                  onClick={() => setLimit(s)}
-                                >
-                                  Set Limit
-                                </button>
-                              )}
-                              {/* Mark Busy/Available for all non-permanent slots */}
-                              {!isPermanentBusy && s.status === 'available' && (
-                                <button 
-                                  className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
-                                  onClick={() => toggleAvailability(s)}
-                                >
-                                  Mark Busy
-                                </button>
-                              )}
-                              {!isPermanentBusy && s.status === 'occupied' && (
-                                <button 
-                                  className="px-3 py-1 text-xs bg-white text-green-600 rounded-md transition-colors duration-200 hover:bg-green-100 font-medium"
-                                  onClick={() => toggleAvailability(s)}
-                                >
-                                  Mark Available
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
+                  {DAYS.map((d) => (
+                    <th key={d} className="p-4 bg-gray-50 border-b border-gray-200 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      {d}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {times.map((t) => (
+                  <tr key={t} className="hover:bg-gray-25 transition-colors duration-150">
+                    <td className="p-4 text-sm font-medium text-gray-900 bg-gray-50">
+                      {t.replace('-', ' - ')}
+                    </td>
+                    {DAYS.map((d) => {
+                      const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
+                      if (!s) {
+                        return (
+                          <td key={d} className="p-4"></td>
+                        );
+                      }
+
+                      const isPermanentBusy = Boolean(s.initiallyBusy);
+                      const isBusy = s.status === 'occupied';
+                      const past = isPastSlot(s);
+                      const isBookingState = past && !isPermanentBusy;
+                      const bg = isPermanentBusy
+                        ? 'bg-red-600'  // Changed from bg-red-800
+                        : (isBookingState ? 'bg-orange-100' : (isBusy ? 'bg-red-100' : 'bg-green-100'));
+                      const textColor = isPermanentBusy ? 'text-white' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
+
+                      return (
+                        <td key={d} className="p-4">
+                          <div className={`${bg} rounded-xl p-3 text-center shadow-sm`}>
+                            <span className={`text-sm font-medium ${textColor}`}>
+                              {isPermanentBusy ? 'Busy (Permanent)' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'))}
+                            </span>
+                            {(!isBusy || isBookingState) && (
+                              <div className="mt-1 text-xs">
+                                {s.currentBookings}/{s.maxBookings} bookings
+                              </div>
+                            )}
+                            {(isBusy && !isPermanentBusy) && (
+                              <div className="mt-1 text-xs text-red-800">
+                                Max Booking - {s.maxBookings}
+                              </div>
+                            )}
+                            {!isBookingState && (
+                              <div className="mt-2 flex flex-col gap-1">
+                                {/* Set Limit for all non-permanent slots */}
+                                {!isPermanentBusy && (
+                                  <button 
+                                    className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium"
+                                    onClick={() => setLimit(s)}
+                                  >
+                                    Set Limit
+                                  </button>
+                                )}
+                                {/* Mark Busy/Available for all non-permanent slots */}
+                                {!isPermanentBusy && s.status === 'available' && (
+                                  <button 
+                                    className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium"
+                                    onClick={() => toggleAvailability(s)}
+                                  >
+                                    Mark Busy
+                                  </button>
+                                )}
+                                {!isPermanentBusy && s.status === 'occupied' && (
+                                  <button 
+                                    className="px-3 py-1 text-xs bg-white text-green-600 rounded-lg transition-colors duration-200 hover:bg-green-100 font-medium"
+                                    onClick={() => toggleAvailability(s)}
+                                  >
+                                    Mark Available
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Mobile List View */}
         {isMobile && (
           <div className="md:hidden space-y-4">
             {(selectedDay ? [selectedDay] : DAYS).map((d) => (
-              <div key={d} className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
+              <div key={d} className="bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
                 <h3 className="font-semibold text-gray-900 text-center mb-4 text-lg">{d}</h3>
                 <div className="space-y-3">
                   {slots
@@ -252,14 +259,14 @@ export default function TeacherEdit() {
                       const past = isPastSlot(s);
                       const isBookingState = past && !isPermanentBusy;
                       const bg = isPermanentBusy
-                        ? 'bg-red-800'
+                        ? 'bg-red-600'  // Changed from bg-red-800
                         : (isBookingState ? 'bg-orange-100' : (isBusy ? 'bg-red-100' : 'bg-green-100'));
-                      const textColor = isPermanentBusy ? '' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
+                      const textColor = isPermanentBusy ? 'text-white' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
                       
                       return (
-                        <div key={s._id} className={`${bg} rounded-lg p-4 shadow-sm ${isPermanentBusy ? 'text-white' : ''}`}>
+                        <div key={s._id} className={`${bg} rounded-xl p-4 shadow-sm`}>
                           <div className="flex justify-between items-center">
-                            <span className={`font-medium ${textColor}`}>
+                            <span className="font-medium">
                               {s.start} - {s.end}
                             </span>
                             <span className={`text-xs font-medium ${textColor}`}>
@@ -273,7 +280,7 @@ export default function TeacherEdit() {
                               </span>
                               {!isBookingState && !isPermanentBusy && s.status === 'available' && (
                                 <button 
-                                  className="px-3 py-1 text-xs bg-white text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100 font-medium"
+                                  className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium"
                                   onClick={() => setLimit(s)}
                                 >
                                   Set Limit
@@ -286,7 +293,6 @@ export default function TeacherEdit() {
                               <span className="text-sm text-red-800">
                                 Max Booking - {s.maxBookings}
                               </span>
-                              <span className="text-xs text-red-800">&nbsp;</span>
                             </div>
                           )}
                         </div>
@@ -300,7 +306,7 @@ export default function TeacherEdit() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-8 py-4 text-center text-sm text-gray-500 border-t border-gray-200 bg-white">
+      <footer className="mt-8 py-6 text-center text-sm text-gray-500 border-t border-gray-200 bg-white">
         <p>Teacher Portal • {new Date().getFullYear()}</p>
       </footer>
     </div>
