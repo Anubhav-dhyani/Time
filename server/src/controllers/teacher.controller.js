@@ -289,18 +289,32 @@ export async function getSetupTimetable(req, res) {
 export async function saveSetupTimetable(req, res) {
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  const { busyKeys } = req.body; // array of `${day}|${start}|${end}` to mark occupied
+  // Accept changedKeys (all changed slots) and changedBusy (changed slots that are now busy)
+  const { changedKeys = [], changedBusy = [] } = req.body;
   const toKey = (s) => `${s.day}|${s.start}|${s.end}`;
-  const setBusy = new Set(busyKeys || []);
+  const setChanged = new Set(changedKeys);
+  const setBusy = new Set(changedBusy);
+  let updatedCount = 0;
   teacher.timetable.forEach((s) => {
-    const busy = setBusy.has(toKey(s));
-    // Setup defines permanent busy flags; status remains occupied by default
-    s.initiallyBusy = busy;
-    s.status = 'occupied';
+    const k = toKey(s);
+    if (setChanged.has(k)) {
+      s.initiallyBusy = setBusy.has(k);
+      // Set status based on busy state
+      if (setBusy.has(k)) {
+        s.status = 'occupied';
+      } else {
+        s.status = 'available';
+      }
+      updatedCount++;
+    }
+    // If not changed, leave slot as is
   });
-  teacher.mustSetupTimetable = false;
+  // Only set mustSetupTimetable to false on first setup
+  if (teacher.mustSetupTimetable) {
+    teacher.mustSetupTimetable = false;
+  }
   await teacher.save();
-  res.json({ ok: true, timetable: teacher.timetable });
+  res.json({ ok: true, updatedCount, timetable: teacher.timetable });
 }
 
 // Daily Notes (venue + description per day)

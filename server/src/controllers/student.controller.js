@@ -1,3 +1,53 @@
+// Get all bookings for the logged-in student, with slot, teacher, and notes details
+export async function getMyBookings(req, res) {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Find all bookings for this student
+    const bookings = await Booking.find({ studentUserId: user._id }).lean();
+    if (!bookings.length) return res.json({ bookings: [] });
+
+    // Get all involved teachers
+    const teacherIds = [...new Set(bookings.map(b => b.teacherId))];
+    const teachers = await Teacher.find({ teacherId: { $in: teacherIds } }).lean();
+    const teacherMap = Object.fromEntries(teachers.map(t => [t.teacherId, t]));
+
+    // Build detailed booking info
+    const detailed = bookings.map(b => {
+      const teacher = teacherMap[b.teacherId];
+      let slot = null;
+      if (teacher && Array.isArray(teacher.timetable)) {
+        slot = teacher.timetable.find(s => String(s._id) === String(b.slotId));
+      }
+      // Find daily notes for the slot's day
+      let notes = {};
+      if (teacher && Array.isArray(teacher.dailyNotes) && slot) {
+        notes = teacher.dailyNotes.find(n => n.day === slot.day) || {};
+      }
+      return {
+        _id: b._id,
+        teacherId: b.teacherId,
+        teacherName: teacher?.name || b.teacherId,
+        slot: slot ? {
+          day: slot.day,
+          start: slot.start,
+          end: slot.end,
+          status: slot.status,
+          initiallyBusy: slot.initiallyBusy,
+          maxBookings: slot.maxBookings,
+          currentBookings: slot.currentBookings,
+        } : {},
+        status: b.status,
+        notes,
+        createdAt: b.createdAt,
+      };
+    });
+    res.json({ bookings: detailed });
+  } catch (error) {
+    console.error('Error in getMyBookings:', error);
+    res.status(500).json({ error: 'Failed to fetch bookings' });
+  }
+}
 // Get assigned teachers for logged-in student
 export async function getMyTeachers(req, res) {
   try {
@@ -32,7 +82,6 @@ function isSlotInPast(slot){
   return timeLTE(slot.end, now);
 }
 
-// 
 const DEFAULT_TIMES = [
   ['08:00', '08:55'],
   ['08:55', '09:50'],

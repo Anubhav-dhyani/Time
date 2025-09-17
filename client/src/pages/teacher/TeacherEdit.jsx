@@ -186,11 +186,12 @@ export default function TeacherEdit() {
                         : (isBookingState ? 'bg-orange-100' : (isBusy ? 'bg-red-100' : 'bg-green-100'));
                       const textColor = isPermanentBusy ? 'text-white' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
 
+                      const statusText = isPermanentBusy ? 'Class' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'));
                       return (
                         <td key={d} className="p-4">
                           <div className={`${bg} rounded-xl p-3 text-center shadow-sm`}>
                             <span className={`text-sm font-medium ${textColor}`}>
-                              {isPermanentBusy ? 'Busy (Permanent)' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'))}
+                              {statusText}
                             </span>
                             {(!isBusy || isBookingState) && (
                               <div className="mt-1 text-xs">

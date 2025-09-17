@@ -58,8 +58,7 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
+    // Removed auto-refresh interval. Manual refresh only.
   }, []);
   useEffect(() => { if (mustSetup) nav('/teacher/setup'); }, [mustSetup]);
 
@@ -398,6 +397,77 @@ export default function TeacherDashboard() {
                       <p className="mt-1 text-sm text-gray-500">Students haven't booked any slots yet.</p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'notes' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Daily Notes</h2>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post('/teacher/daily-notes', { notes });
+                        const n = await api.get('/teacher/daily-notes');
+                        setNotes(n.data.notes || []);
+                      } catch (e) {
+                        console.error('Failed saving notes', e);
+                      }
+                    }}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Notes
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {DAYS.map((d) => {
+                    const idx = (notes || []).findIndex((n) => n.day === d);
+                    const note = idx >= 0 ? notes[idx] : { day: d, venue: '', description: '' };
+                    return (
+                      <div key={d} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-4 flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          {d}
+                        </h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
+                            <input
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              value={note.venue}
+                              onChange={(e) => {
+                                const updated = [...(notes || [])];
+                                if (idx >= 0) updated[idx] = { ...note, venue: e.target.value };
+                                else updated.push({ ...note, venue: e.target.value });
+                                setNotes(updated);
+                              }}
+                              placeholder="e.g., Room 210, Lab 3, Main Hall"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              rows={3}
+                              value={note.description}
+                              onChange={(e) => {
+                                const updated = [...(notes || [])];
+                                if (idx >= 0) updated[idx] = { ...note, description: e.target.value };
+                                else updated.push({ ...note, description: e.target.value });
+                                setNotes(updated);
+                              }}
+                              placeholder="Additional notes for students..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

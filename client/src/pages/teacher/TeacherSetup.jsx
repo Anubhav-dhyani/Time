@@ -6,6 +6,7 @@ export default function TeacherSetup() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [slots, setSlots] = useState([]);
+  const [originalSlots, setOriginalSlots] = useState([]); // Track original state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +18,8 @@ export default function TeacherSetup() {
         const { data } = await api.get('/teacher/timetable/setup');
         // Use initiallyBusy from API; setup defines permanent busy flags only
         const normalized = (data.timetable || []).map(s => ({ ...s }));
-        setSlots(normalized);
+  setSlots(normalized);
+  setOriginalSlots(normalized.map(s => ({ ...s }))); // Save original state
       } catch (e) {
         console.error('Load error:', e);
         setError(e.response?.data?.message || 'Failed to load timetable');
@@ -33,12 +35,22 @@ export default function TeacherSetup() {
     setSlots((prev) => prev.map((x) => (x._id === s._id ? { ...x, initiallyBusy: !Boolean(x.initiallyBusy) } : x)));
   };
 
+  // Only send changed slots
   const save = async () => {
     setSaving(true);
     setError('');
     try {
-      const busyKeys = slots.filter((s) => Boolean(s.initiallyBusy)).map(key);
-      await api.post('/teacher/timetable/setup', { busyKeys });
+      // Compare slots to originalSlots
+      const changedSlots = slots.filter((s) => {
+        const orig = originalSlots.find(os => os._id === s._id);
+        return orig && orig.initiallyBusy !== s.initiallyBusy;
+      });
+      const changedKeys = changedSlots.map(key);
+      const changedBusy = changedSlots.filter(s => Boolean(s.initiallyBusy)).map(key);
+      // Send only changed slots and their new busy state
+      await api.post('/teacher/timetable/setup', { changedKeys, changedBusy });
+      // Update originalSlots to match current slots after save
+      setOriginalSlots(slots.map(s => ({ ...s })));
       navigate('/teacher');
     } catch (e) {
       console.error('Save error:', e);
@@ -193,6 +205,7 @@ export default function TeacherSetup() {
                       const busy = Boolean(s.initiallyBusy);
                       const bgColor = busy ? 'bg-red-600' : 'bg-red-100';
                       const textColor = busy ? 'text-white' : 'text-red-800';
+                      const statusText = busy ? 'Class' : 'Busy';
 
                       return (
                         <td key={d} className="px-2 py-1.5">
@@ -201,13 +214,13 @@ export default function TeacherSetup() {
                             onClick={() => toggleBusy(s)}
                           >
                             <div className={`text-xs font-medium ${textColor} mb-0.5`}>
-                              {busy ? 'Busy (Permanent)' : 'Not Busy'}
+                              {statusText}
                             </div>
                             <button
                               className={`text-xs px-2 py-0.5 bg-white rounded transition-colors font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-red-700 hover:bg-red-100'}`}
                               onClick={(e) => { e.stopPropagation(); toggleBusy(s); }}
                             >
-                              {busy ? 'Mark Not Busy' : 'Mark Busy'}
+                              {busy ? 'Mark Not Busy' : 'Mark Class'}
                             </button>
                           </div>
                         </td>
@@ -248,20 +261,21 @@ export default function TeacherSetup() {
                       const busy = Boolean(s.initiallyBusy);
                       const bgColor = busy ? 'bg-red-600' : 'bg-red-100';
                       const textColor = busy ? 'text-white' : 'text-red-800';
+                      const statusText = busy ? 'Class' : 'Busy';
 
                       return (
                         <div key={s._id} className={`${bgColor} rounded-lg p-3 shadow-sm`}>
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-medium text-gray-900">{s.start} - {s.end}</span>
                             <span className={`text-xs font-medium ${textColor}`}>
-                              {busy ? 'Busy (Permanent)' : 'Not Busy'}
+                              {statusText}
                             </span>
                           </div>
                           <button
                             className={`w-full px-3 py-2 text-xs bg-white rounded transition-colors font-medium ${busy ? 'text-red-700 hover:bg-red-100' : 'text-red-700 hover:bg-red-100'}`}
                             onClick={() => toggleBusy(s)}
                           >
-                            {busy ? 'Mark Not Busy' : 'Mark Busy'}
+                            {busy ? 'Mark Not Busy' : 'Mark Class'}
                           </button>
                         </div>
                       );

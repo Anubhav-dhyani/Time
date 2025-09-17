@@ -23,7 +23,6 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
     const dt = new Date();
     return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
   };
-  
   const timeLTE = (a,b) => String(a || '').localeCompare(String(b || '')) <= 0;
   const defaultIsPast = (slot) => {
     const si = dayToIndex(slot.day);
@@ -35,6 +34,57 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
     return timeLTE(end, nowHM());
   };
   const isPast = (slot) => (typeof isPastSlot === 'function' ? isPastSlot(slot) : defaultIsPast(slot));
+
+  // Unified slot status/color logic
+  function getSlotDisplay(slot, context) {
+    // context: 'teacher', 'student'
+    const permanentBusy = Boolean(slot.initiallyBusy);
+    const busy = slot.status === 'occupied';
+    const past = isPast(slot);
+    if (permanentBusy) {
+      // Always 'Class' (dark red)
+      return {
+        bgColor: 'bg-red-600 border border-red-700',
+        textColor: 'text-white',
+        statusText: 'Class',
+        showBookings: true,
+      };
+    }
+    if (busy) {
+      // Always 'Busy' (light red)
+      return {
+        bgColor: 'bg-red-50 border border-red-200',
+        textColor: 'text-red-700',
+        statusText: 'Busy',
+        showBookings: true,
+      };
+    }
+    if (context === 'teacher' && past) {
+      // Past slot for teacher: 'Booking' (orange)
+      return {
+        bgColor: 'bg-orange-50 border border-orange-200',
+        textColor: 'text-orange-700',
+        statusText: 'Booking',
+        showBookings: true,
+      };
+    }
+    if (context === 'student' && past) {
+      // Past slot for student: 'Unavailable' (yellow)
+      return {
+        bgColor: 'bg-yellow-50 border border-yellow-200',
+        textColor: 'text-yellow-700',
+        statusText: 'Unavailable',
+        showBookings: true,
+      };
+    }
+    // Available slot
+    return {
+      bgColor: 'bg-green-50 border border-green-200',
+      textColor: 'text-green-700',
+      statusText: 'Available',
+      showBookings: true,
+    };
+  }
 
   // Get all unique time slots
   const times = useMemo(() => {
@@ -75,43 +125,17 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
                       <td key={`${day}-${time}`} className="px-2 py-2"></td>
                     );
                   }
-
-                  let bgColor, textColor, statusText;
-                  const past = isPast(slot);
-                  const effectivePast = (teacherView && slot.initiallyBusy) ? false : past;
-                  if (effectivePast) {
-                    if (teacherView && !slot.initiallyBusy) {
-                      bgColor = 'bg-orange-50 border border-orange-200';
-                      textColor = 'text-orange-700';
-                      statusText = 'Booking';
-                    } else {
-                      bgColor = 'bg-red-50 border border-red-200';
-                      textColor = 'text-red-700';
-                      statusText = 'Unavailable';
-                    }
-                  } else if (slot.status === 'occupied') {
-                    if (teacherView && !slot.initiallyBusy) {
-                      bgColor = 'bg-red-50 border border-red-200';
-                      textColor = 'text-red-700';
-                    } else {
-                      bgColor = 'bg-red-600 border border-red-700';
-                      textColor = 'text-white';
-                    }
-                    statusText = 'Busy';
-                  } else {
-                    bgColor = 'bg-green-50 border border-green-200';
-                    textColor = 'text-green-700';
-                    statusText = 'Available';
-                  }
-
-                  const bookable = canBook && slot.status === 'available' && !effectivePast && (slot.currentBookings < slot.maxBookings);
+                  // Determine context: teacher or student
+                  const context = teacherView ? 'teacher' : 'student';
+                  const { bgColor, textColor, statusText, showBookings } = getSlotDisplay(slot, context);
+                  const bookable = canBook && statusText === 'Available' && (slot.currentBookings < slot.maxBookings);
                   return (
                     <td key={`${day}-${time}`} className="px-2 py-2">
                       <div className={`${bgColor} rounded px-2 py-1.5 text-center`}>
                         <div className={`text-xs font-medium ${textColor} mb-0.5`}>
                           {statusText}
                         </div>
-                        {(statusText === 'Available' || statusText === 'Booking') && (
+                        {showBookings && (
                           <div className="text-xs text-gray-500 mb-1">
                             {slot.currentBookings}/{slot.maxBookings}
                           </div>
@@ -143,35 +167,9 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
             </div>
             <div className="p-2 space-y-2">
               {(grouped[day] || []).map(slot => {
-                let bgColor, textColor, statusText;
-                const past = isPast(slot);
-                const effectivePast = (teacherView && slot.initiallyBusy) ? false : past;
-                if (effectivePast) {
-                  if (teacherView && !slot.initiallyBusy) {
-                    bgColor = 'bg-orange-50 border border-orange-200';
-                    textColor = 'text-orange-700';
-                    statusText = 'Booking';
-                  } else {
-                    bgColor = 'bg-red-50 border border-red-200';
-                    textColor = 'text-red-700';
-                    statusText = 'Unavailable';
-                  }
-                } else if (slot.status === 'occupied') {
-                  if (teacherView && !slot.initiallyBusy) {
-                    bgColor = 'bg-red-50 border border-red-200';
-                    textColor = 'text-red-700';
-                  } else {
-                    bgColor = 'bg-red-600 border border-red-700';
-                    textColor = 'text-white';
-                  }
-                  statusText = 'Busy';
-                } else {
-                  bgColor = 'bg-green-50 border border-green-200';
-                  textColor = 'text-green-700';
-                  statusText = 'Available';
-                }
-
-                const bookable = canBook && slot.status === 'available' && !effectivePast && (slot.currentBookings < slot.maxBookings);
+                const context = teacherView ? 'teacher' : 'student';
+                const { bgColor, textColor, statusText, showBookings } = getSlotDisplay(slot, context);
+                const bookable = canBook && statusText === 'Available' && (slot.currentBookings < slot.maxBookings);
                 return (
                   <div key={`${day}-${slot.start}-${slot.end}`} className={`${bgColor} rounded-lg p-2`}>
                     <div className="flex justify-between items-center mb-1">
@@ -182,7 +180,7 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
                         {statusText}
                       </span>
                     </div>
-                    {(statusText === 'Available' || statusText === 'Booking') && (
+                    {showBookings && (
                       <div className="text-xs text-gray-600 mb-1">
                         {slot.currentBookings}/{slot.maxBookings} bookings
                       </div>
