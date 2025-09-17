@@ -1,12 +1,15 @@
 
 import { Router } from 'express';
 import { authenticate, requireRole } from '../middleware/auth.js';
-import { getMyTimetable, upsertSlots, setSlotStatus, getBookings, getSetupTimetable, saveSetupTimetable, getDailyNotes, saveDailyNotes, uploadStudentsCsv, downloadBookingsCsv } from '../controllers/teacher.controller.js';
+
 import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
+import { getMyTimetable, upsertSlots, setSlotStatus, getBookings, getSetupTimetable, saveSetupTimetable, getDailyNotes, saveDailyNotes, uploadStudentsCsv, downloadBookingsCsv, getMyStudents } from '../controllers/teacher.controller.js';
 const router = Router();
 
 router.use(authenticate, requireRole('teacher'));
+// Get all students assigned to this teacher
+router.get('/students', getMyStudents);
 // Download all bookings for the week as CSV
 router.get('/bookings-csv', downloadBookingsCsv);
 

@@ -3,6 +3,16 @@ import { useAuth } from '../../state/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import Timetable from '../../shared/Timetable.jsx';
 
+function sortStudents(students, asc = true) {
+  return [...students].sort((a, b) => {
+    const nameA = (a.name || '').toLowerCase();
+    const nameB = (b.name || '').toLowerCase();
+    if (nameA < nameB) return asc ? -1 : 1;
+    if (nameA > nameB) return asc ? 1 : -1;
+    return 0;
+  });
+}
+
 export default function TeacherDashboard() {
   const { api, logout, user } = useAuth();
   const nav = useNavigate();
@@ -12,11 +22,16 @@ export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState('timetable');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [notes, setNotes] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [sortAsc, setSortAsc] = useState(true);
   const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   // CSV upload state
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvUploadMsg, setCsvUploadMsg] = useState('');
+
+  // CSV download error state
+  const [csvDownloadError, setCsvDownloadError] = useState('');
 
   // Handle CSV upload
   const handleCsvUpload = async (e) => {
@@ -39,18 +54,23 @@ export default function TeacherDashboard() {
     }
   };
 
-  // CSV download error state
-  const [csvDownloadError, setCsvDownloadError] = useState('');
-
   const load = async () => {
     try {
       const { data } = await api.get('/teacher/timetable');
       setTimetable(data.timetable || []);
       setMustSetup(data.mustSetup);
       const b = await api.get('/teacher/bookings');
-      setBookings(b.data.bookings);
+      setBookings(b.data.bookings || []);
       const n = await api.get('/teacher/daily-notes');
       setNotes(n.data.notes || []);
+      // Fetch students for this teacher
+      const s = await api.get('/teacher/students');
+      // Deduplicate by email
+      const unique = Object.values((s.data.students || []).reduce((acc, st) => {
+        if (st.email) acc[st.email] = st;
+        return acc;
+      }, {}));
+      setStudents(unique);
     } catch (error) {
       console.error('Error loading teacher data:', error);
     }
@@ -60,7 +80,27 @@ export default function TeacherDashboard() {
     load();
     // Removed auto-refresh interval. Manual refresh only.
   }, []);
-  useEffect(() => { if (mustSetup) nav('/teacher/setup'); }, [mustSetup]);
+
+  useEffect(() => {
+    if (mustSetup) nav('/teacher/setup');
+  }, [mustSetup, nav]);
+
+  const dayToIndex = (d) => ({ SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 })[d] ?? -1;
+  const nowHM = () => {
+    const dt = new Date();
+    return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+  };
+  const timeLTE = (a, b) => String(a || '').localeCompare(String(b || '')) <= 0;
+
+  const isPastSlot = (slot) => {
+    const si = dayToIndex(slot.day);
+    if (si < 0) return false;
+    const today = new Date().getDay();
+    if (si < today) return true;
+    if (si > today) return false;
+    const end = slot.end || slot.start;
+    return timeLTE(end, nowHM());
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -135,7 +175,10 @@ export default function TeacherDashboard() {
           <div className="md:hidden border-t border-gray-200 bg-white">
             <div className="px-4 py-3 space-y-2">
               <button
-                onClick={() => { nav('/teacher/setup'); setIsMenuOpen(false); }}
+                onClick={() => {
+                  nav('/teacher/setup');
+                  setIsMenuOpen(false);
+                }}
                 className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
               >
                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +187,10 @@ export default function TeacherDashboard() {
                 Setup Timetable
               </button>
               <button
-                onClick={() => { nav('/change-password'); setIsMenuOpen(false); }}
+                onClick={() => {
+                  nav('/change-password');
+                  setIsMenuOpen(false);
+                }}
                 className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
               >
                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +199,10 @@ export default function TeacherDashboard() {
                 Change Password
               </button>
               <button
-                onClick={() => { nav('/teacher/edit'); setIsMenuOpen(false); }}
+                onClick={() => {
+                  nav('/teacher/edit');
+                  setIsMenuOpen(false);
+                }}
                 className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
               >
                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,18 +239,22 @@ export default function TeacherDashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Upload Students CSV:</label>
             <div className="flex-1 flex items-center gap-3">
-              <input 
-                type="file" 
-                accept=".csv" 
-                onChange={handleCsvUpload} 
-                disabled={csvUploading} 
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleCsvUpload}
+                disabled={csvUploading}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               {csvUploading && <span className="text-blue-600 text-sm animate-pulse">Uploading...</span>}
             </div>
           </div>
           {csvUploadMsg && (
-            <div className={`mt-3 text-sm p-3 rounded-md ${csvUploadMsg.includes('successful') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            <div
+              className={`mt-3 text-sm p-3 rounded-md ${
+                csvUploadMsg.includes('successful') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
+            >
               {csvUploadMsg}
             </div>
           )}
@@ -213,9 +266,7 @@ export default function TeacherDashboard() {
             <nav className="-mb-px flex">
               <button
                 className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'timetable' 
-                    ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  activeTab === 'timetable' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('timetable')}
               >
@@ -228,29 +279,41 @@ export default function TeacherDashboard() {
               </button>
               <button
                 className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'bookings' 
-                    ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  activeTab === 'bookings' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('bookings')}
               >
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0m3 0H9m1.5-9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0m3 0H9m1.5-9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+                    />
                   </svg>
                   Bookings
                   {bookings.length > 0 && (
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {bookings.length}
-                    </span>
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{bookings.length}</span>
                   )}
                 </div>
               </button>
               <button
                 className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'notes' 
-                    ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  activeTab === 'students' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('students')}
+              >
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M17 8a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Student List
+                </div>
+              </button>
+              <button
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'notes' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('notes')}
               >
@@ -269,7 +332,7 @@ export default function TeacherDashboard() {
             {activeTab === 'timetable' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900">Your Schedule</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Your Timetable</h2>
                   <button
                     onClick={load}
                     className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
@@ -280,15 +343,38 @@ export default function TeacherDashboard() {
                     Refresh
                   </button>
                 </div>
-                <Timetable slots={timetable} canBook={false} teacherView={true} />
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {timetable.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Timetable
+                        slots={timetable.map((s) => ({
+                          ...s,
+                          statusText: Boolean(s.initiallyBusy) ? 'Class' : s.status === 'occupied' ? 'Booked' : 'Available',
+                          bgColor: Boolean(s.initiallyBusy) ? 'bg-red-600' : s.status === 'occupied' ? 'bg-red-100' : 'bg-green-50',
+                          textColor: Boolean(s.initiallyBusy) ? 'text-white' : s.status === 'occupied' ? 'text-red-800' : 'text-green-700',
+                        }))}
+                        canBook={false} // Teachers cannot book their own slots
+                        isPastSlot={isPastSlot}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No timetable set</h3>
+                      <p className="mt-1 text-sm text-gray-500">Please set up your timetable in the Setup page.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {activeTab === 'bookings' && (
               <div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900">Student Appointments</h2>
-                  <div className="flex gap-3">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Student Bookings</h2>
+                  <div className="flex space-x-3">
                     <button
                       onClick={load}
                       className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
@@ -319,7 +405,9 @@ export default function TeacherDashboard() {
                           let msg = 'Failed to download CSV';
                           if (e.response && e.response.data) {
                             if (e.response.data instanceof Blob) {
-                              try { msg = await e.response.data.text(); } catch {}
+                              try {
+                                msg = await e.response.data.text();
+                              } catch {}
                             } else if (typeof e.response.data === 'string') {
                               msg = e.response.data;
                             } else if (e.response.data.message) {
@@ -340,9 +428,7 @@ export default function TeacherDashboard() {
                 </div>
 
                 {csvDownloadError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-                    {csvDownloadError}
-                  </div>
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">{csvDownloadError}</div>
                 )}
 
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -369,16 +455,14 @@ export default function TeacherDashboard() {
                                   <div className="text-sm text-gray-600">{b.student?.email || '-'}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {slot ? `${slot.day} ${slot.start}-${slot.end}` : b.slotId}
-                                  </div>
+                                  <div className="text-sm text-gray-900">{slot ? `${slot.day} ${slot.start}-${slot.end}` : b.slotId}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                    b.status === 'confirmed' 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
+                                  <span
+                                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                      b.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    }`}
+                                  >
                                     {b.status}
                                   </span>
                                 </td>
@@ -401,73 +485,64 @@ export default function TeacherDashboard() {
               </div>
             )}
 
-            {activeTab === 'notes' && (
+            {activeTab === 'students' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900">Daily Notes</h2>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await api.post('/teacher/daily-notes', { notes });
-                        const n = await api.get('/teacher/daily-notes');
-                        setNotes(n.data.notes || []);
-                      } catch (e) {
-                        console.error('Failed saving notes', e);
-                      }
-                    }}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Notes
-                  </button>
+                  <h2 className="text-lg font-semibold text-gray-900">Student List</h2>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={load}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Refresh
+                    </button>
+                    <button
+                      onClick={() => setSortAsc(!sortAsc)}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                      </svg>
+                      Sort {sortAsc ? 'Descending' : 'Ascending'}
+                    </button>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {DAYS.map((d) => {
-                    const idx = (notes || []).findIndex((n) => n.day === d);
-                    const note = idx >= 0 ? notes[idx] : { day: d, venue: '', description: '' };
-                    return (
-                      <div key={d} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <h3 className="font-medium text-gray-900 mb-4 flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                          {d}
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
-                            <input
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              value={note.venue}
-                              onChange={(e) => {
-                                const updated = [...(notes || [])];
-                                if (idx >= 0) updated[idx] = { ...note, venue: e.target.value };
-                                else updated.push({ ...note, venue: e.target.value });
-                                setNotes(updated);
-                              }}
-                              placeholder="e.g., Room 210, Lab 3, Main Hall"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                            <textarea
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              rows={3}
-                              value={note.description}
-                              onChange={(e) => {
-                                const updated = [...(notes || [])];
-                                if (idx >= 0) updated[idx] = { ...note, description: e.target.value };
-                                else updated.push({ ...note, description: e.target.value });
-                                setNotes(updated);
-                              }}
-                              placeholder="Additional notes for students..."
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {students.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {sortStudents(students, sortAsc).map((s) => (
+                            <tr key={s.email} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{s.name || '-'}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-600">{s.email || '-'}</div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M17 8a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No students assigned</h3>
+                      <p className="mt-1 text-sm text-gray-500">Upload a student list or check back later.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -550,8 +625,7 @@ export default function TeacherDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center">
             <p className="text-sm text-gray-500">
-              Teacher Portal • {new Date().getFullYear()} • 
-              <span className="ml-2 text-gray-400">Streamline your academic scheduling</span>
+              Teacher Portal • {new Date().getFullYear()} • <span className="ml-2 text-gray-400">Streamline your academic scheduling</span>
             </p>
           </div>
         </div>

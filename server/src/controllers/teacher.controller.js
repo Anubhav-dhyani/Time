@@ -1,3 +1,32 @@
+// Get all students assigned to the logged-in teacher
+export async function getMyStudents(req, res) {
+  try {
+    const teacher = await Teacher.findOne({ email: req.user.email });
+    if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+    // Find all students with this teacherId in their teacherIds array
+    const students = await Student.find({ teacherIds: teacher.teacherId }).lean();
+    // Deduplicate by email
+    const unique = Object.values((students || []).reduce((acc, st) => {
+      if (st.email) acc[st.email] = st;
+      return acc;
+    }, {}));
+    // Optional sort
+    const sort = req.query.sort;
+    if (sort === 'asc' || sort === 'desc') {
+      unique.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        if (nameA < nameB) return sort === 'asc' ? -1 : 1;
+        if (nameA > nameB) return sort === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    res.json({ students: unique });
+  } catch (error) {
+    console.error('Error in getMyStudents:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+}
 import { Teacher } from '../models/Teacher.js';
 import { Booking } from '../models/Booking.js';
 import { Student } from '../models/Student.js';
