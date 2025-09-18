@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../state/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
+import Timetable from '../../shared/Timetable.jsx';
 
 function Modal({ open, onClose, children }) {
   if (!open) return null;
@@ -12,10 +15,30 @@ function Modal({ open, onClose, children }) {
     </div>
   );
 }
-import { useAuth } from '../../state/AuthContext.jsx';
-import TeacherHeader from '../../shared/TeacherHeader.jsx';
-import { useNavigate } from 'react-router-dom';
-import Timetable from '../../shared/Timetable.jsx';
+
+function TeacherHeader({ onMenuClick, teacherName }) {
+  return (
+    <header className="bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div className="flex items-center">
+          <svg className="w-6 h-6 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+          </svg>
+          <h1 className="text-xl font-semibold text-gray-900">Teacher Dashboard</h1>
+        </div>
+        <div className="text-lg font-medium text-gray-700">Welcome, {teacherName || 'Teacher'}</div>
+        <button
+          onClick={onMenuClick}
+          className="p-2 text-blue-600 hover:text-blue-800 focus:outline-none"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </header>
+  );
+}
 
 function sortStudents(students, asc = true) {
   return [...students].sort((a, b) => {
@@ -28,28 +51,7 @@ function sortStudents(students, asc = true) {
 }
 
 export default function TeacherDashboard() {
-  // Load dashboard data (timetable, bookings, students, notes)
-  const load = async () => {
-    try {
-      const [tt, bk, st, nt] = await Promise.all([
-        api.get('/teacher/timetable'),
-        api.get('/teacher/bookings'),
-        api.get('/teacher/students'),
-        api.get('/teacher/daily-notes'),
-      ]);
-      setTimetable(tt.data.timetable || []);
-      setBookings(bk.data.bookings || []);
-      setStudents(st.data.students || []);
-      setNotes(nt.data.notes || []);
-    } catch (e) {
-      // Optionally handle error
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-  const { api } = useAuth();
+  const { api, logout, user } = useAuth();
   const nav = useNavigate();
   const [timetable, setTimetable] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -59,19 +61,72 @@ export default function TeacherDashboard() {
   const [notes, setNotes] = useState([]);
   const [students, setStudents] = useState([]);
   const [sortAsc, setSortAsc] = useState(true);
-  const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-
-  // CSV upload state
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvUploadMsg, setCsvUploadMsg] = useState('');
-
-  // Modal state for single student add
-  const [modal, setModal] = useState({ open: false, form: {} });
-
-  // CSV download error state
   const [csvDownloadError, setCsvDownloadError] = useState('');
+  const [modal, setModal] = useState({ open: false, form: {} });
+  const [isLoading, setIsLoading] = useState(true);
+  const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-  // Handle CSV upload
+  const load = async () => {
+    try {
+      setIsLoading(true);
+      const [tt, bk, st, nt] = await Promise.all([
+        api.get('/teacher/timetable'),
+        api.get('/teacher/bookings'),
+        api.get('/teacher/students'),
+        api.get('/teacher/daily-notes'),
+      ]);
+      
+      setTimetable(tt.data.timetable || []);
+      setBookings(bk.data.bookings || []);
+      setStudents(st.data.students || []);
+      setNotes(nt.data.notes || []);
+      
+      // Check if teacher needs to complete setup (no timetable configured)
+      if (!tt.data.timetable || tt.data.timetable.length === 0) {
+        setMustSetup(true);
+      } else {
+        setMustSetup(false);
+      }
+    } catch (e) {
+      console.error("Failed to load teacher data:", e);
+      if (e.response && e.response.status === 401) {
+        logout();
+        nav('/login');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (mustSetup) {
+      nav('/teacher/setup');
+    }
+  }, [mustSetup, nav]);
+
+  // Show loading state while checking if setup is needed
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to setup if no timetable exists
+  if (mustSetup) {
+    return null; // The useEffect will handle the navigation
+  }
+
   const handleCsvUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -90,10 +145,6 @@ export default function TeacherDashboard() {
     }
     setCsvUploading(false);
   };
-
-  useEffect(() => {
-    if (mustSetup) nav('/teacher/setup');
-  }, [mustSetup, nav]);
 
   const dayToIndex = (d) => ({ SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 })[d] ?? -1;
   const nowHM = () => {
@@ -114,9 +165,43 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TeacherHeader />
+      <TeacherHeader onMenuClick={() => setIsMenuOpen(!isMenuOpen)} teacherName={user?.name} />
+      {isMenuOpen && (
+        <div className="absolute top-16 right-4 z-50 bg-white rounded-lg shadow-xl border border-gray-200 w-48">
+          <div className="py-1">
+            <button
+              onClick={() => {
+                nav('/teacher/setup');
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+            >
+              Setup Dashboard
+            </button>
+            <button
+              onClick={() => {
+                nav('/change-password');
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+            >
+              Change Password
+            </button>
+            <button
+              onClick={() => {
+                logout();
+                nav('/login');
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Navigation Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex">
@@ -134,13 +219,20 @@ export default function TeacherDashboard() {
                 </div>
               </button>
               <button
-                className="py-3 px-6 text-sm font-medium border-b-2 transition-colors duration-200"
-                onClick={() => nav('/teacher/edit')}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                  activeTab === 'edit-timetable' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => {
+                  setActiveTab('edit-timetable');
+                  nav('/teacher/edit');
+                }}
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Timetable
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Timetable
+                </div>
               </button>
               <button
                 className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors duration-200 ${
@@ -205,7 +297,6 @@ export default function TeacherDashboard() {
             </nav>
           </div>
 
-          {/* Tab Content */}
           <div className="p-4 transition-all duration-300 ease-in-out">
             {activeTab === 'timetable' && (
               <div>
@@ -230,11 +321,11 @@ export default function TeacherDashboard() {
                           statusText: Boolean(s.initiallyBusy) ? 'Class' : s.status === 'occupied' ? 'Booked' : 'Available',
                           bgColor: Boolean(s.initiallyBusy) ? 'bg-red-600' : s.status === 'occupied' ? 'bg-red-100' : 'bg-green-50',
                           textColor: Boolean(s.initiallyBusy) ? 'text-white' : s.status === 'occupied' ? 'text-red-800' : 'text-green-700',
-                          fontSize: 'text-lg', // Increased font size for status text
+                          fontSize: 'text-lg',
                         }))}
                         canBook={false}
                         isPastSlot={isPastSlot}
-                        className="max-w-full" // Ensure timetable fits screen
+                        className="max-w-full"
                       />
                     </div>
                   ) : (
@@ -442,7 +533,7 @@ export default function TeacherDashboard() {
                       }
                     }}
                     className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
+                    >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -530,7 +621,6 @@ export default function TeacherDashboard() {
                     {csvUploadMsg}
                   </div>
                 )}
-                {/* Modal for single student add */}
                 <Modal open={modal?.open} onClose={() => setModal({ open: false, form: {} })}>
                   <form
                     onSubmit={async (e) => {
@@ -538,7 +628,6 @@ export default function TeacherDashboard() {
                       const { name, email, password, studentId } = modal.form || {};
                       if (!name || !email || !password || !studentId) return;
                       try {
-                        // Create a CSV string for a single student
                         const csv = `name,email,password,studentId\n"${name}","${email}","${password}","${studentId}"`;
                         const formData = new FormData();
                         formData.append('file', new Blob([csv], { type: 'text/csv' }), 'single-student.csv');
