@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { authenticate, requireRole } from '../middleware/auth.js';
-import { uploadTeachers, uploadStudents, listUsers, linkStudentTeacher, resetTeacherPassword } from '../controllers/admin.controller.js';
+import { uploadTeachers, uploadStudents, listUsers, linkStudentTeacher, resetTeacherPassword, addSingleTeacher, addSingleStudent } from '../controllers/admin.controller.js';
+router.post('/add-teacher', addSingleTeacher);
+router.post('/add-student', addSingleStudent);
 import { User } from '../models/User.js';
 import { Teacher } from '../models/Teacher.js';
 import bcrypt from 'bcryptjs';

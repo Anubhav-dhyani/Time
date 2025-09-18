@@ -1,4 +1,17 @@
 import React, { useEffect, useState } from 'react';
+
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white rounded-xl shadow-xl p-8 w-full max-w-md z-10 animate-fade-in">
+        {children}
+        <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl">×</button>
+      </div>
+    </div>
+  );
+}
 import { useAuth } from '../../state/AuthContext.jsx';
 
 export default function AdminDashboard() {
@@ -8,6 +21,44 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState({ refresh: false, teachers: false, students: false });
   const [selectedFiles, setSelectedFiles] = useState({ teachers: null, students: null });
+  // Modal state
+  const [modal, setModal] = useState({ open: false, type: '', form: {} });
+  // Modal form handlers
+  const openModal = (type) => setModal({ open: true, type, form: {} });
+  const closeModal = () => setModal({ open: false, type: '', form: {} });
+  const handleModalChange = (e) => {
+    const { name, value } = e.target;
+    setModal((prev) => ({ ...prev, form: { ...prev.form, [name]: value } }));
+  };
+  const handleModalSubmit = async (e) => {
+    e.preventDefault();
+    const { type, form } = modal;
+    setLoading((prev) => ({ ...prev, [type]: true }));
+    try {
+      let endpoint = '';
+      let formData = new FormData();
+      if (type === 'teacher') {
+        endpoint = '/admin/upload/teachers';
+        // CSV header: name,email,password,teacherId
+        const csv = `name,email,password,teacherId\n"${form.name}","${form.email}","${form.password}","${form.teacherId}"`;
+        formData.append('file', new Blob([csv], { type: 'text/csv' }), 'single-teacher.csv');
+      } else if (type === 'student') {
+        endpoint = '/admin/upload/students';
+        // CSV header: name,email,password,studentId,teacherIds
+        const teacherIds = (form.teacherIds || '').split(/[,;|\s]+/).filter(Boolean).join(';');
+        const csv = `name,email,password,studentId,teacherIds\n"${form.name}","${form.email}","${form.password}","${form.studentId}","${teacherIds}"`;
+        formData.append('file', new Blob([csv], { type: 'text/csv' }), 'single-student.csv');
+      }
+      const { data } = await api.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setResult(data);
+      closeModal();
+      await refresh();
+    } catch (error) {
+      setResult({ error: error?.response?.data?.error || 'Failed to add user' });
+    } finally {
+      setLoading((prev) => ({ ...prev, [type]: false }));
+    }
+  };
 
   const refresh = async () => {
     setLoading(prev => ({ ...prev, refresh: true }));
@@ -147,6 +198,13 @@ export default function AdminDashboard() {
               </div>
               <p className="text-gray-600 text-sm mb-4">Upload CSV/XLSX file with teacher information</p>
               <div className="space-y-3">
+                <button
+                  type="button"
+                  className="w-full mb-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-100 transition-colors duration-200"
+                  onClick={() => openModal('teacher')}
+                >
+                  Add Single Teacher
+                </button>
                 <label htmlFor="teachers" className="block">
                   <input 
                     id="teachers" 
@@ -193,6 +251,38 @@ export default function AdminDashboard() {
               </div>
               <p className="text-gray-600 text-sm mb-4">Upload CSV/XLSX file with student information</p>
               <div className="space-y-3">
+                <button
+                  type="button"
+                  className="w-full mb-2 bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-green-100 transition-colors duration-200"
+                  onClick={() => openModal('student')}
+                >
+                  Add Single Student
+                </button>
+      {/* Modal for single user add */}
+      <Modal open={modal.open} onClose={closeModal}>
+        <form onSubmit={handleModalSubmit} className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            {modal.type === 'teacher' ? 'Add Single Teacher' : 'Add Single Student'}
+          </h2>
+          {modal.type === 'teacher' ? (
+            <>
+              <input name="name" required placeholder="Name" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="email" required placeholder="Email" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="password" required placeholder="Password" type="password" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="teacherId" required placeholder="Teacher ID" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+            </>
+          ) : (
+            <>
+              <input name="name" required placeholder="Name" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="email" required placeholder="Email" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="password" required placeholder="Password" type="password" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="studentId" required placeholder="Student ID" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+              <input name="teacherIds" required placeholder="Teacher IDs (comma separated)" className="w-full border rounded px-3 py-2" onChange={handleModalChange} />
+            </>
+          )}
+          <button type="submit" className="w-full bg-blue-600 text-white rounded px-4 py-2 font-medium hover:bg-blue-700 transition">Add</button>
+        </form>
+      </Modal>
                 <label htmlFor="students" className="block">
                   <input 
                     id="students" 

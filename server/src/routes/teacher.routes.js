@@ -4,7 +4,8 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 
 import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
-import { getMyTimetable, upsertSlots, setSlotStatus, getBookings, getSetupTimetable, saveSetupTimetable, getDailyNotes, saveDailyNotes, uploadStudentsCsv, downloadBookingsCsv, getMyStudents } from '../controllers/teacher.controller.js';
+import { getMyTimetable, upsertSlots, setSlotStatus, getBookings, getSetupTimetable, saveSetupTimetable, getDailyNotes, saveDailyNotes, uploadStudentsCsv, downloadBookingsCsv, getMyStudents, addSingleStudentTeacher } from '../controllers/teacher.controller.js';
+router.post('/add-student', addSingleStudentTeacher);
 const router = Router();
 
 router.use(authenticate, requireRole('teacher'));

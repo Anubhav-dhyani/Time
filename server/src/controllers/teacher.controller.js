@@ -1,3 +1,22 @@
+// Add single student (teacher)
+export async function addSingleStudentTeacher(req, res) {
+  try {
+    const { name, email, password, studentId } = req.body;
+    if (!name || !email || !password || !studentId) return res.status(400).json({ error: 'All fields required' });
+    const teacher = await Teacher.findOne({ email: req.user.email });
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+    const passwordHash = await bcrypt.hash(password, 10);
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ error: 'User with this email already exists' });
+    user = await User.create({ role: 'student', name, email, passwordHash, studentId, teacherId: teacher.teacherId, mustChangePassword: true });
+    let student = await Student.findOne({ email });
+    if (student) return res.status(400).json({ error: 'Student with this email already exists' });
+    student = await Student.create({ studentId, name, email, teacherIds: [teacher.teacherId] });
+    res.json({ message: 'Student added', studentId, name, email });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
 // Get all students assigned to the logged-in teacher
 export async function getMyStudents(req, res) {
   try {

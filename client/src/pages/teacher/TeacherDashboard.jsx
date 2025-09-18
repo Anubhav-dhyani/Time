@@ -1,4 +1,17 @@
 import React, { useEffect, useState } from 'react';
+
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white rounded-xl shadow-xl p-8 w-full max-w-md z-10 animate-fade-in">
+        {children}
+        <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl">×</button>
+      </div>
+    </div>
+  );
+}
 import { useAuth } from '../../state/AuthContext.jsx';
 import TeacherHeader from '../../shared/TeacherHeader.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +64,9 @@ export default function TeacherDashboard() {
   // CSV upload state
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvUploadMsg, setCsvUploadMsg] = useState('');
+
+  // Modal state for single student add
+  const [modal, setModal] = useState({ open: false, form: {} });
 
   // CSV download error state
   const [csvDownloadError, setCsvDownloadError] = useState('');
@@ -498,6 +514,13 @@ export default function TeacherDashboard() {
                     {csvUploading && <span className="text-blue-600 text-sm animate-pulse">Uploading...</span>}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className="w-full mb-2 bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-green-100 transition-colors duration-200"
+                  onClick={() => setModal({ open: true, form: {} })}
+                >
+                  Add Single Student
+                </button>
                 {csvUploadMsg && (
                   <div
                     className={`text-sm p-3 rounded-md transition-opacity duration-200 ${
@@ -507,6 +530,36 @@ export default function TeacherDashboard() {
                     {csvUploadMsg}
                   </div>
                 )}
+                {/* Modal for single student add */}
+                <Modal open={modal?.open} onClose={() => setModal({ open: false, form: {} })}>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const { name, email, password, studentId } = modal.form || {};
+                      if (!name || !email || !password || !studentId) return;
+                      try {
+                        // Create a CSV string for a single student
+                        const csv = `name,email,password,studentId\n"${name}","${email}","${password}","${studentId}"`;
+                        const formData = new FormData();
+                        formData.append('file', new Blob([csv], { type: 'text/csv' }), 'single-student.csv');
+                        const { data } = await api.post('/teacher/upload-students', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        setCsvUploadMsg(data?.message || 'Student added!');
+                        setModal({ open: false, form: {} });
+                        await load();
+                      } catch (error) {
+                        setCsvUploadMsg(error?.response?.data?.error || 'Failed to add student');
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    <h2 className="text-lg font-semibold text-gray-800 mb-2">Add Single Student</h2>
+                    <input name="name" required placeholder="Name" className="w-full border rounded px-3 py-2" value={modal.form.name || ''} onChange={e => setModal(m => ({ ...m, form: { ...m.form, name: e.target.value } }))} />
+                    <input name="email" required placeholder="Email" className="w-full border rounded px-3 py-2" value={modal.form.email || ''} onChange={e => setModal(m => ({ ...m, form: { ...m.form, email: e.target.value } }))} />
+                    <input name="password" required placeholder="Password" type="password" className="w-full border rounded px-3 py-2" value={modal.form.password || ''} onChange={e => setModal(m => ({ ...m, form: { ...m.form, password: e.target.value } }))} />
+                    <input name="studentId" required placeholder="Student ID" className="w-full border rounded px-3 py-2" value={modal.form.studentId || ''} onChange={e => setModal(m => ({ ...m, form: { ...m.form, studentId: e.target.value } }))} />
+                    <button type="submit" className="w-full bg-blue-600 text-white rounded px-4 py-2 font-medium hover:bg-blue-700 transition">Add</button>
+                  </form>
+                </Modal>
               </div>
             )}
           </div>

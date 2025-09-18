@@ -1,3 +1,38 @@
+// Add single teacher (admin)
+export async function addSingleTeacher(req, res) {
+  try {
+    const { name, email, password, teacherId } = req.body;
+    if (!name || !email || !password || !teacherId) return res.status(400).json({ error: 'All fields required' });
+    const passwordHash = await bcrypt.hash(password, 10);
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ error: 'User with this email already exists' });
+    user = await User.create({ role: 'teacher', name, email, passwordHash, teacherId });
+    let teacher = await Teacher.findOne({ email });
+    if (teacher) return res.status(400).json({ error: 'Teacher with this email already exists' });
+    teacher = await Teacher.create({ teacherId, name, email, timetable: [] });
+    res.json({ message: 'Teacher added', teacherId, name, email });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+// Add single student (admin)
+export async function addSingleStudent(req, res) {
+  try {
+    const { name, email, password, studentId, teacherIds } = req.body;
+    if (!name || !email || !password || !studentId || !Array.isArray(teacherIds) || teacherIds.length === 0) return res.status(400).json({ error: 'All fields required' });
+    const passwordHash = await bcrypt.hash(password, 10);
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ error: 'User with this email already exists' });
+    user = await User.create({ role: 'student', name, email, passwordHash, studentId, teacherId: teacherIds[0], mustChangePassword: true });
+    let student = await Student.findOne({ email });
+    if (student) return res.status(400).json({ error: 'Student with this email already exists' });
+    student = await Student.create({ studentId, name, email, teacherIds });
+    res.json({ message: 'Student added', studentId, name, email, teacherIds });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import { nanoid } from 'nanoid';
