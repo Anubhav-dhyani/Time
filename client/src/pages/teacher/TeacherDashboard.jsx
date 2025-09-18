@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
+import TeacherHeader from '../../shared/TeacherHeader.jsx';
 import { useNavigate } from 'react-router-dom';
 import Timetable from '../../shared/Timetable.jsx';
 
@@ -14,7 +15,28 @@ function sortStudents(students, asc = true) {
 }
 
 export default function TeacherDashboard() {
-  const { api, logout, user } = useAuth();
+  // Load dashboard data (timetable, bookings, students, notes)
+  const load = async () => {
+    try {
+      const [tt, bk, st, nt] = await Promise.all([
+        api.get('/teacher/timetable'),
+        api.get('/teacher/bookings'),
+        api.get('/teacher/students'),
+        api.get('/teacher/daily-notes'),
+      ]);
+      setTimetable(tt.data.timetable || []);
+      setBookings(bk.data.bookings || []);
+      setStudents(st.data.students || []);
+      setNotes(nt.data.notes || []);
+    } catch (e) {
+      // Optionally handle error
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+  const { api } = useAuth();
   const nav = useNavigate();
   const [timetable, setTimetable] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -49,34 +71,9 @@ export default function TeacherDashboard() {
       await load();
     } catch (err) {
       setCsvUploadMsg(err.response?.data?.message || 'Upload failed');
-    } finally {
-      setCsvUploading(false);
     }
+    setCsvUploading(false);
   };
-
-  const load = async () => {
-    try {
-      const { data } = await api.get('/teacher/timetable');
-      setTimetable(data.timetable || []);
-      setMustSetup(data.mustSetup);
-      const b = await api.get('/teacher/bookings');
-      setBookings(b.data.bookings || []);
-      const n = await api.get('/teacher/daily-notes');
-      setNotes(n.data.notes || []);
-      const s = await api.get('/teacher/students');
-      const unique = Object.values((s.data.students || []).reduce((acc, st) => {
-        if (st.email) acc[st.email] = st;
-        return acc;
-      }, {}));
-      setStudents(unique);
-    } catch (error) {
-      console.error('Error loading teacher data:', error);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   useEffect(() => {
     if (mustSetup) nav('/teacher/setup');
@@ -101,90 +98,7 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Professional Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 h-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
-          {/* Left: Teacher Portal */}
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg mr-3 flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Teacher Portal</h1>
-          </div>
-
-          {/* Center: Welcome Back */}
-          <div className="hidden sm:flex items-center">
-            <h2 className="text-lg font-medium text-gray-900">Welcome back, {user?.name || 'Teacher'}!</h2>
-          </div>
-
-          {/* Right: Menu Icon */}
-          <div className="relative">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors duration-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 transition-opacity duration-200 ease-in-out">
-                <button
-                  onClick={() => {
-                    nav('/teacher/setup');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors duration-150"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Setup
-                </button>
-                <button
-                  onClick={() => {
-                    nav('/change-password');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors duration-150"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  Password
-                </button>
-                <button
-                  onClick={() => {
-                    nav('/teacher/edit');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors duration-150"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center transition-colors duration-150"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
+      <TeacherHeader />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Navigation Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
@@ -202,6 +116,15 @@ export default function TeacherDashboard() {
                   </svg>
                   Timetable
                 </div>
+              </button>
+              <button
+                className="py-3 px-6 text-sm font-medium border-b-2 transition-colors duration-200"
+                onClick={() => nav('/teacher/edit')}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Timetable
               </button>
               <button
                 className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors duration-200 ${

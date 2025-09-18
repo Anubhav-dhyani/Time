@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
+import TeacherHeader from '../../shared/TeacherHeader.jsx';
 import { useNavigate } from 'react-router-dom';
 
 export default function TeacherSetup() {
@@ -93,14 +94,7 @@ export default function TeacherSetup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      {/* Professional Header */}
-      <header className="bg-white shadow-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Set Your Availability</h1>
-          <p className="text-gray-600 mt-1">Configure your teaching schedule</p>
-        </div>
-      </header>
-
+      <TeacherHeader />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Instructions Card */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">

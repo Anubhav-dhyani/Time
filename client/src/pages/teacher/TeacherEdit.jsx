@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
+import TeacherHeader from '../../shared/TeacherHeader.jsx';
 import { useNavigate } from 'react-router-dom';
 
 export default function TeacherEdit() {
@@ -73,36 +74,7 @@ export default function TeacherEdit() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      {/* Professional Header */}
-      <header className="bg-white shadow-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
-          <div className="flex items-center">
-            <button 
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden mr-4 text-red-700 focus:outline-none"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Timetable</h1>
-              <p className="text-gray-600 mt-1">Manage your schedule and booking limits</p>
-            </div>
-          </div>
-          
-          <button 
-            onClick={() => nav('/teacher')} 
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl transition-colors duration-300 flex items-center shadow-lg"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Dashboard
-          </button>
-        </div>
-      </header>
-
+      <TeacherHeader />
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Enhanced Info Card */}
