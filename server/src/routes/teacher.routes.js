@@ -1,12 +1,13 @@
 
 import { Router } from 'express';
 import { authenticate, requireRole } from '../middleware/auth.js';
-
 import multer from 'multer';
-const upload = multer({ dest: 'uploads/' });
 import { getMyTimetable, upsertSlots, setSlotStatus, getBookings, getSetupTimetable, saveSetupTimetable, getDailyNotes, saveDailyNotes, uploadStudentsCsv, downloadBookingsCsv, getMyStudents, addSingleStudentTeacher } from '../controllers/teacher.controller.js';
-router.post('/add-student', addSingleStudentTeacher);
+
 const router = Router();
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/add-student', addSingleStudentTeacher);
 
 router.use(authenticate, requireRole('teacher'));
 // Get all students assigned to this teacher

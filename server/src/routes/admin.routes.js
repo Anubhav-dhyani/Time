@@ -2,15 +2,15 @@ import { Router } from 'express';
 import multer from 'multer';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { uploadTeachers, uploadStudents, listUsers, linkStudentTeacher, resetTeacherPassword, addSingleTeacher, addSingleStudent } from '../controllers/admin.controller.js';
-router.post('/add-teacher', addSingleTeacher);
-router.post('/add-student', addSingleStudent);
 import { User } from '../models/User.js';
 import { Teacher } from '../models/Teacher.js';
 import bcrypt from 'bcryptjs';
 
-const upload = multer({ dest: 'uploads/' });
 const router = Router();
+const upload = multer({ dest: 'uploads/' });
 
+router.post('/add-teacher', addSingleTeacher);
+router.post('/add-student', addSingleStudent);
 router.use(authenticate, requireRole('admin'));
 
 router.post('/upload/teachers', upload.single('file'), uploadTeachers);
