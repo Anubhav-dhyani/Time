@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 
+// --- No changes to the logic part ---
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 function groupByDay(slots) {
@@ -15,7 +16,6 @@ function groupByDay(slots) {
 }
 
 export default function Timetable({ slots = [], canBook = false, onBook, isPastSlot, teacherView = false }) {
-  // Ensure all slots display at least 5 for maxBookings
   const normalizedSlots = slots.map(s => ({ ...s, maxBookings: (!s.maxBookings || s.maxBookings < 5) ? 5 : s.maxBookings }));
   const grouped = useMemo(() => groupByDay(normalizedSlots), [normalizedSlots]);
   const dayToIndex = (d) => ({ SUN:0, MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6 })[d] ?? -1;
@@ -35,58 +35,51 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
   };
   const isPast = (slot) => (typeof isPastSlot === 'function' ? isPastSlot(slot) : defaultIsPast(slot));
 
-  // Unified slot status/color logic
+  // Unified slot status/color logic (borders are removed from here and applied to the table cells)
   function getSlotDisplay(slot, context) {
-    // context: 'teacher', 'student'
     const permanentBusy = Boolean(slot.initiallyBusy);
     const busy = slot.status === 'occupied';
     const past = isPast(slot);
     if (permanentBusy) {
-      // Always 'Class' (dark red)
-      return {
-        bgColor: 'bg-red-600 border border-red-700',
+      return { // Dark Red for "Class"
+        bgColor: 'bg-red-600',
         textColor: 'text-white',
         statusText: 'Class',
         showBookings: true,
       };
     }
     if (busy) {
-      // Always 'Busy' (light red)
-      return {
-        bgColor: 'bg-red-50 border border-red-200',
-        textColor: 'text-red-700',
+      return { // Light Red for "Busy"
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-800',
         statusText: 'Busy',
         showBookings: true,
       };
     }
     if (context === 'teacher' && past) {
-      // Past slot for teacher: 'Booking' (orange)
-      return {
-        bgColor: 'bg-orange-50 border border-orange-200',
-        textColor: 'text-orange-700',
-        statusText: 'Booking',
-        showBookings: true,
-      };
+        return { // Orange for past Teacher slots
+          bgColor: 'bg-orange-100',
+          textColor: 'text-orange-800',
+          statusText: 'Booking',
+          showBookings: true,
+        };
     }
     if (context === 'student' && past) {
-      // Past slot for student: 'Unavailable' (yellow)
-      return {
-        bgColor: 'bg-yellow-50 border border-yellow-200',
-        textColor: 'text-yellow-700',
+      return { // Yellow for past Student slots
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-800',
         statusText: 'Unavailable',
         showBookings: true,
       };
     }
-    // Available slot
-    return {
-      bgColor: 'bg-green-50 border border-green-200',
-      textColor: 'text-green-700',
+    return { // Green for "Available"
+      bgColor: 'bg-green-100',
+      textColor: 'text-green-800',
       statusText: 'Available',
       showBookings: true,
     };
   }
 
-  // Get all unique time slots
   const times = useMemo(() => {
     const timeSet = new Set();
     normalizedSlots.forEach(slot => {
@@ -95,110 +88,119 @@ export default function Timetable({ slots = [], canBook = false, onBook, isPastS
     return Array.from(timeSet).sort();
   }, [normalizedSlots]);
 
+  // --- Start of the new redesigned JSX ---
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      {/* Desktop View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="w-20 px-2 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Time
-              </th>
-              {DAYS.map(day => (
-                <th key={day} className="px-2 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide min-w-[120px]">
-                  {day}
+    <div className="bg-white rounded-lg border border-gray-300 shadow-sm p-1 sm:p-2">
+      <div className="overflow-x-auto">
+        {/* --- DESKTOP VIEW --- */}
+        <div className="hidden md:block">
+            <table className="w-full border-collapse text-center">
+            <thead>
+                <tr className="bg-gray-100">
+                <th className="sticky left-0 bg-gray-100 z-10 p-2 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider border-2 border-gray-300 w-32">
+                    Time
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {times.map((time, index) => (
-              <tr key={time} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}>
-                <td className="px-2 py-2 text-xs font-medium text-gray-700 bg-gray-50 whitespace-nowrap">
-                  {time.replace('-', '-')}
-                </td>
-                {DAYS.map(day => {
-                  const slot = (grouped[day] || []).find(s => `${s.start}-${s.end}` === time);
-                  if (!slot) {
-                    return (
-                      <td key={`${day}-${time}`} className="px-2 py-2"></td>
-                    );
-                  }
-                  // Determine context: teacher or student
-                  const context = teacherView ? 'teacher' : 'student';
-                  const { bgColor, textColor, statusText, showBookings } = getSlotDisplay(slot, context);
-                  const bookable = canBook && statusText === 'Available' && (slot.currentBookings < slot.maxBookings);
-                  return (
-                    <td key={`${day}-${time}`} className="px-2 py-2">
-                      <div className={`${bgColor} rounded px-2 py-1.5 text-center`}>
-                        <div className={`text-xs font-medium ${textColor} mb-0.5`}>
-                          {statusText}
-                        </div>
-                        {showBookings && (
-                          <div className="text-xs text-gray-500 mb-1">
-                            {slot.currentBookings}/{slot.maxBookings}
-                          </div>
-                        )}
-                        {bookable && (
-                          <button
-                            className="text-xs px-2 py-0.5 bg-white text-green-600 rounded border hover:bg-green-50 transition-colors font-medium"
-                            onClick={() => onBook && onBook(slot)}
-                          >
-                            Book
-                          </button>
-                        )}
-                      </div>
+                {DAYS.map(day => (
+                    <th key={day} className="p-2 text-sm font-semibold text-gray-700 uppercase tracking-wider border-2 border-gray-300 min-w-[140px]">
+                    {day}
+                    </th>
+                ))}
+                </tr>
+            </thead>
+            <tbody>
+                {times.map((time, index) => (
+                <tr key={time} className="even:bg-white odd:bg-gray-50">
+                    <td className="sticky left-0 z-10 p-2 text-sm font-semibold text-gray-800 whitespace-nowrap border-2 border-gray-300" style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                    {time.replace('-', ' - ')}
                     </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    {DAYS.map(day => {
+                    const slot = (grouped[day] || []).find(s => `${s.start}-${s.end}` === time);
+                    if (!slot) {
+                        return (
+                        <td key={`${day}-${time}`} className="border-2 border-gray-300"></td>
+                        );
+                    }
+                    
+                    const context = teacherView ? 'teacher' : 'student';
+                    const { bgColor, textColor, statusText, showBookings } = getSlotDisplay(slot, context);
+                    const bookable = canBook && statusText === 'Available' && (slot.currentBookings < slot.maxBookings);
 
-      {/* Mobile View */}
-      <div className="md:hidden">
-        {DAYS.map(day => (
-          <div key={day} className="border-b border-gray-100 last:border-b-0">
-            <div className="bg-gray-50 px-3 py-2">
-              <h3 className="text-sm font-semibold text-gray-700 text-center">{day}</h3>
+                    return (
+                        <td key={`${day}-${time}`} className={`p-2 align-middle border-2 border-gray-300 ${bgColor}`}>
+                        <div className="flex flex-col h-full items-center justify-center">
+                            <div className={`text-base font-bold ${textColor}`}>
+                            {statusText}
+                            </div>
+                            {showBookings && (
+                            <div className="text-sm text-gray-600 mt-1">
+                                {slot.currentBookings} / {slot.maxBookings}
+                            </div>
+                            )}
+                            <div className="flex-grow"></div> {/* Pushes button to the bottom if content is sparse */}
+                            {bookable && (
+                            <button
+                                className="w-full mt-2 text-sm px-3 py-1 bg-white text-green-700 rounded-md border border-green-400 hover:bg-green-50 transition-colors font-semibold shadow-sm"
+                                onClick={() => onBook && onBook(slot)}
+                            >
+                                Book
+                            </button>
+                            )}
+                        </div>
+                        </td>
+                    );
+                    })}
+                </tr>
+                ))}
+            </tbody>
+            </table>
+        </div>
+
+        {/* --- MOBILE VIEW --- */}
+        <div className="md:hidden">
+            {DAYS.map(day => (
+            <div key={day} className="mb-4">
+                <div className="bg-gray-100 p-2 rounded-t-lg border-x-2 border-t-2 border-gray-300">
+                    <h3 className="text-base font-bold text-gray-800 text-center">{day}</h3>
+                </div>
+                <div className="border-2 border-t-0 border-gray-300 rounded-b-lg p-2 space-y-2">
+                {(grouped[day] || []).length > 0 ? (
+                    (grouped[day] || []).map(slot => {
+                        const context = teacherView ? 'teacher' : 'student';
+                        const { bgColor, textColor, statusText, showBookings } = getSlotDisplay(slot, context);
+                        const bookable = canBook && statusText === 'Available' && (slot.currentBookings < slot.maxBookings);
+                        return (
+                        <div key={`${day}-${slot.start}`} className={`${bgColor} rounded-md p-3 shadow-sm border border-gray-300`}>
+                            <div className="flex justify-between items-center mb-1.5">
+                            <span className="text-base font-bold text-gray-900">
+                                {slot.start} - {slot.end}
+                            </span>
+                            <span className={`text-sm font-semibold ${textColor}`}>
+                                {statusText}
+                            </span>
+                            </div>
+                            {showBookings && (
+                            <div className="text-sm text-gray-600 mb-2">
+                                Bookings: {slot.currentBookings}/{slot.maxBookings}
+                            </div>
+                            )}
+                            {bookable && (
+                            <button
+                                className="w-full text-base px-3 py-1.5 bg-white text-green-700 rounded-md border-2 border-green-400 hover:bg-green-50 transition-colors font-bold"
+                                onClick={() => onBook && onBook(slot)}
+                            >
+                                Book Now
+                            </button>
+                            )}
+                        </div>
+                        );
+                    })
+                ) : (
+                    <div className="text-center text-sm text-gray-500 py-4">No slots available.</div>
+                )}
+                </div>
             </div>
-            <div className="p-2 space-y-2">
-              {(grouped[day] || []).map(slot => {
-                const context = teacherView ? 'teacher' : 'student';
-                const { bgColor, textColor, statusText, showBookings } = getSlotDisplay(slot, context);
-                const bookable = canBook && statusText === 'Available' && (slot.currentBookings < slot.maxBookings);
-                return (
-                  <div key={`${day}-${slot.start}-${slot.end}`} className={`${bgColor} rounded-lg p-2`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-800">
-                        {slot.start} - {slot.end}
-                      </span>
-                      <span className={`text-xs font-medium ${textColor} px-2 py-0.5 rounded-full bg-white/50`}>
-                        {statusText}
-                      </span>
-                    </div>
-                    {showBookings && (
-                      <div className="text-xs text-gray-600 mb-1">
-                        {slot.currentBookings}/{slot.maxBookings} bookings
-                      </div>
-                    )}
-                    {bookable && (
-                      <button
-                        className="w-full text-sm px-3 py-1.5 bg-white text-green-600 rounded border border-green-200 hover:bg-green-50 transition-colors font-medium"
-                        onClick={() => onBook && onBook(slot)}
-                      >
-                        Book Now
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+            ))}
+        </div>
       </div>
     </div>
   );

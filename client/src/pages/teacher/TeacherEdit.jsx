@@ -26,8 +26,9 @@ export default function TeacherEdit() {
   
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
+    // Auto-refresh can be performance-intensive. Consider a manual refresh button instead.
+    // const interval = setInterval(load, 5000); 
+    // return () => clearInterval(interval);
   }, []);
 
   const setLimit = async (s) => {
@@ -150,7 +151,8 @@ export default function TeacherEdit() {
         {/* Desktop Grid View */}
         <div className={`bg-white rounded-2xl shadow-lg border border-gray-100 mb-8 overflow-hidden ${isMobile ? 'hidden md:block' : 'block'}`}>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            {/* Added table-fixed for equal column widths */}
+            <table className="w-full table-fixed">
               <thead>
                 <tr>
                   <th className="w-32 p-4 bg-gray-50 border-b border-gray-200 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -173,7 +175,7 @@ export default function TeacherEdit() {
                       const s = slots.find((x) => x.day === d && `${x.start}-${x.end}` === t);
                       if (!s) {
                         return (
-                          <td key={d} className="p-4"></td>
+                          <td key={d} className="p-2"></td> // Use p-2 to match content cells
                         );
                       }
 
@@ -182,57 +184,63 @@ export default function TeacherEdit() {
                       const past = isPastSlot(s);
                       const isBookingState = past && !isPermanentBusy;
                       const bg = isPermanentBusy
-                        ? 'bg-red-600'  // Changed from bg-red-800
+                        ? 'bg-red-600'
                         : (isBookingState ? 'bg-orange-100' : (isBusy ? 'bg-red-100' : 'bg-green-100'));
                       const textColor = isPermanentBusy ? 'text-white' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
-
                       const statusText = isPermanentBusy ? 'Class' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'));
+
                       return (
-                        <td key={d} className="p-4">
-                          <div className={`${bg} rounded-xl p-3 text-center shadow-sm`}>
-                            <span className={`text-sm font-medium ${textColor}`}>
-                              {statusText}
-                            </span>
-                            {(!isBusy || isBookingState) && (
-                              <div className="mt-1 text-xs">
-                                {s.currentBookings}/{s.maxBookings} bookings
-                              </div>
-                            )}
-                            {(isBusy && !isPermanentBusy) && (
-                              <div className="mt-1 text-xs text-red-800">
-                                Max Booking - {s.maxBookings}
-                              </div>
-                            )}
-                            {!isBookingState && (
-                              <div className="mt-2 flex flex-col gap-1">
-                                {/* Set Limit for all non-permanent slots */}
-                                {!isPermanentBusy && (
-                                  <button 
-                                    className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium"
-                                    onClick={() => setLimit(s)}
-                                  >
-                                    Set Limit
-                                  </button>
-                                )}
-                                {/* Mark Busy/Available for all non-permanent slots */}
-                                {!isPermanentBusy && s.status === 'available' && (
-                                  <button 
-                                    className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium"
-                                    onClick={() => toggleAvailability(s)}
-                                  >
-                                    Mark Busy
-                                  </button>
-                                )}
-                                {!isPermanentBusy && s.status === 'occupied' && (
-                                  <button 
-                                    className="px-3 py-1 text-xs bg-white text-green-600 rounded-lg transition-colors duration-200 hover:bg-green-100 font-medium"
-                                    onClick={() => toggleAvailability(s)}
-                                  >
-                                    Mark Available
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                        <td key={d} className="p-2 align-top"> {/* Use p-2 to give inner content space */}
+                          {/* Flex container for equal height and content distribution */}
+                          <div className={`${bg} rounded-xl p-3 text-center shadow-sm flex flex-col justify-between h-full min-h-[150px]`}>
+                            {/* Top section: Status and bookings */}
+                            <div>
+                              <span className={`text-sm font-medium ${textColor}`}>
+                                {statusText}
+                              </span>
+                              {(!isBusy || isBookingState) && (
+                                <div className="mt-1 text-xs">
+                                  {s.currentBookings}/{s.maxBookings} bookings
+                                </div>
+                              )}
+                              {(isBusy && !isPermanentBusy) && (
+                                <div className="mt-1 text-xs text-red-800">
+                                  Max Booking - {s.maxBookings}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Bottom section: Action buttons */}
+                            <div>
+                              {!isBookingState && (
+                                <div className="mt-2 flex flex-col gap-1">
+                                  {!isPermanentBusy && (
+                                    <button 
+                                      className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium border border-gray-200"
+                                      onClick={() => setLimit(s)}
+                                    >
+                                      Set Limit
+                                    </button>
+                                  )}
+                                  {!isPermanentBusy && s.status === 'available' && (
+                                    <button 
+                                      className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium border border-gray-200"
+                                      onClick={() => toggleAvailability(s)}
+                                    >
+                                      Mark Busy
+                                    </button>
+                                  )}
+                                  {!isPermanentBusy && s.status === 'occupied' && (
+                                    <button 
+                                      className="px-3 py-1 text-xs bg-white text-green-600 rounded-lg transition-colors duration-200 hover:bg-green-100 font-medium border border-gray-200"
+                                      onClick={() => toggleAvailability(s)}
+                                    >
+                                      Mark Available
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       );
@@ -260,40 +268,36 @@ export default function TeacherEdit() {
                       const past = isPastSlot(s);
                       const isBookingState = past && !isPermanentBusy;
                       const bg = isPermanentBusy
-                        ? 'bg-red-600'  // Changed from bg-red-800
+                        ? 'bg-red-600'
                         : (isBookingState ? 'bg-orange-100' : (isBusy ? 'bg-red-100' : 'bg-green-100'));
                       const textColor = isPermanentBusy ? 'text-white' : (isBookingState ? 'text-orange-800' : (isBusy ? 'text-red-800' : 'text-green-800'));
                       
                       return (
                         <div key={s._id} className={`${bg} rounded-xl p-4 shadow-sm`}>
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">
+                            <span className={`font-medium ${textColor}`}>
                               {s.start} - {s.end}
                             </span>
-                            <span className={`text-xs font-medium ${textColor}`}>
-                              {isPermanentBusy ? 'Busy (Permanent)' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'))}
+                            <span className={`text-sm font-medium ${textColor}`}>
+                              {isPermanentBusy ? 'Class' : (isBookingState ? 'Booking' : (isBusy ? 'Busy' : 'Available'))}
                             </span>
                           </div>
-                          {(!isBusy || isBookingState) && (
-                            <div className="flex justify-between items-center mt-2">
-                              <span className="text-sm">
-                                {s.currentBookings}/{s.maxBookings} bookings
-                              </span>
-                              {!isBookingState && !isPermanentBusy && s.status === 'available' && (
+                          <div className="text-xs mt-1">{s.currentBookings}/{s.maxBookings} bookings</div>
+                          
+                          {!isBookingState && !isPermanentBusy && (
+                            <div className="mt-3 flex gap-2 justify-end">
                                 <button 
-                                  className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg transition-colors duration-200 hover:bg-red-100 font-medium"
+                                  className="px-3 py-1 text-xs bg-white text-gray-700 rounded-lg transition-colors duration-200 hover:bg-gray-100 font-medium border border-gray-200"
                                   onClick={() => setLimit(s)}
                                 >
                                   Set Limit
                                 </button>
-                              )}
-                            </div>
-                          )}
-                          {(isBusy && !isPermanentBusy && !isBookingState) && (
-                            <div className="flex justify-between items-center mt-2">
-                              <span className="text-sm text-red-800">
-                                Max Booking - {s.maxBookings}
-                              </span>
+                                <button 
+                                  className={`px-3 py-1 text-xs bg-white rounded-lg transition-colors duration-200 font-medium border border-gray-200 ${s.status === 'available' ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
+                                  onClick={() => toggleAvailability(s)}
+                                >
+                                  {s.status === 'available' ? 'Mark Busy' : 'Mark Available'}
+                                </button>
                             </div>
                           )}
                         </div>
